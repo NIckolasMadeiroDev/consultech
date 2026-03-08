@@ -1,52 +1,372 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useDashboard } from "@/hooks/useDashboard";
+import { useForms } from "@/hooks/useForms";
+import * as api from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/contexts/toast-context";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import {
+  FileText,
+  MessageSquare,
+  Trash2,
+  Pencil,
+  ExternalLink,
+} from "lucide-react";
+
+type FormWithSummary = {
+  formId: string;
+  title: string;
+  count: number;
+  lastSubmittedAt: string | null;
+};
+
+function DashboardDetailSkeleton() {
+  return (
+    <div className="space-y-lg">
+      <div className="h-8 w-64 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
+      <Card padding="lg">
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 animate-pulse rounded bg-neutral-100 dark:bg-neutral-800" />
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 export default function DashboardDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
-  const { data: dashboard, loading, error } = useDashboard(id);
+  const { user } = useAuth();
+  const userId = user?.id ?? "anonymous";
+  const { data: dashboard, loading, error, refetch } = useDashboard(id);
+  const { data: forms } = useForms(userId);
+  const toast = useToast();
+  const [formDetails, setFormDetails] = useState<FormWithSummary[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [editModal, setEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editFormIds, setEditFormIds] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  if (loading) return <p className="text-slate-600">Carregando...</p>;
+  useEffect(() => {
+    if (!dashboard || dashboard.formIds.length === 0) {
+      setFormDetails([]);
+      return;
+    }
+    let cancelled = false;
+    setDetailsLoading(true);
+    const formIds = dashboard.formIds;
+    Promise.all(
+      formIds.map(async (formId) => {
+        try {
+          const [form, summary] = await Promise.all([
+            api.fetchForm(formId).catch(() => ({ title: formId })),
+            api.fetchFormResponsesSummary(formId, userId).catch(() => ({ count: 0, lastSubmittedAt: null })),
+          ]);
+          return {
+            formId,
+            title: (form as { title?: string }).title ?? formId,
+            count: (summary as { count: number }).count ?? 0,
+            lastSubmittedAt: (summary as { lastSubmittedAt: string | null }).lastSubmittedAt ?? null,
+          };
+        } catch {
+          return { formId, title: formId, count: 0, lastSubmittedAt: null };
+        }
+      })
+    )
+      .then((list) => {
+        if (!cancelled) setFormDetails(list);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard, userId]);
+
+  const totalResponses = useMemo(
+    () => formDetails.reduce((acc, f) => acc + f.count, 0),
+    [formDetails]
+  );
+
+  const openEditModal = useCallback(() => {
+    if (dashboard) {
+      setEditTitle(dashboard.title);
+      setEditFormIds([...dashboard.formIds]);
+      setEditModal(true);
+    }
+  }, [dashboard]);
+
+  const handleSaveEdit = async () => {
+    if (!dashboard) return;
+    setSaving(true);
+    try {
+      await api.updateDashboard(
+        dashboard.id,
+        { title: editTitle.trim() || dashboard.title, formIds: editFormIds },
+        userId
+      );
+      toast("Dashboard atualizado.", "success");
+      refetch();
+      setEditModal(false);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro ao salvar", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleEditFormId = (formId: string) => {
+    setEditFormIds((prev) =>
+      prev.includes(formId) ? prev.filter((id) => id !== formId) : [...prev, formId]
+    );
+  };
+
+  const handleDelete = async () => {
+    if (!dashboard) return;
+    setDeleting(true);
+    try {
+      await api.deleteDashboard(dashboard.id, userId);
+      toast("Dashboard excluído.", "success");
+      router.replace("/admin/dashboards");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro ao excluir", "error");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <div className="mb-lg flex items-center gap-4">
+          <div className="h-5 w-32 animate-pulse rounded bg-neutral-200 dark:bg-neutral-700" />
+        </div>
+        <DashboardDetailSkeleton />
+      </div>
+    );
+  }
+
   if (error || !dashboard) {
     return (
       <div>
-        <p className="text-red-600">{error ?? "Dashboard não encontrado."}</p>
-        <Link href="/admin/dashboards" className="mt-4 inline-block text-blue-600 hover:underline">
-          Voltar
-        </Link>
+        <h1 className="mb-lg text-h2 text-[var(--text-primary)]">Dashboard</h1>
+        <Card className="py-8 text-center" padding="lg">
+          <p className="text-body text-[var(--text-secondary)]">
+            {error ?? "Dashboard não encontrado."}
+          </p>
+          <div className="mt-4 flex justify-center gap-2">
+            <Link href="/admin/dashboards">
+              <Button variant="secondary">Voltar</Button>
+            </Link>
+            {error && (
+              <Button variant="primary" onClick={() => refetch()}>
+                Tentar novamente
+              </Button>
+            )}
+          </div>
+        </Card>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-4">
-        <Link href="/admin/dashboards" className="text-slate-600 hover:underline">
-          ← Voltar
-        </Link>
-        <h1 className="text-2xl font-bold">{dashboard.title}</h1>
+      <div className="mb-lg flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/dashboards"
+            className="text-small text-[var(--text-secondary)] hover:underline"
+          >
+            ← Voltar
+          </Link>
+          <h1 className="text-h2 text-[var(--text-primary)]">{dashboard.title}</h1>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" leftIcon={<Pencil className="h-4 w-4" />} onClick={openEditModal}>
+            Editar
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDeleteModal(true)}
+            aria-label="Excluir dashboard"
+          >
+            <Trash2 className="h-4 w-4 text-error" aria-hidden />
+          </Button>
+        </div>
       </div>
-      <div className="rounded border bg-white p-4">
-        <h2 className="font-medium">Formulários vinculados</h2>
-        <ul className="mt-2 list-inside list-disc">
-          {dashboard.formIds.map((formId) => (
-            <li key={formId}>
-              <Link
-                href={`/admin/forms/${formId}/responses`}
-                className="text-blue-600 hover:underline"
+
+      <div className="mb-lg grid gap-md sm:grid-cols-2">
+        <Card className="flex items-center gap-4" padding="md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+            <FileText className="h-6 w-6 text-primary-600 dark:text-primary-400" aria-hidden />
+          </div>
+          <div>
+            <p className="text-caption text-[var(--text-secondary)]">Formulários</p>
+            <p className="text-h4 text-[var(--text-primary)]">{dashboard.formIds.length}</p>
+          </div>
+        </Card>
+        <Card className="flex items-center gap-4" padding="md">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+            <MessageSquare className="h-6 w-6 text-primary-600 dark:text-primary-400" aria-hidden />
+          </div>
+          <div>
+            <p className="text-caption text-[var(--text-secondary)]">Respostas no total</p>
+            <p className="text-h4 text-[var(--text-primary)]">
+              {detailsLoading ? "—" : totalResponses}
+            </p>
+          </div>
+        </Card>
+      </div>
+
+      <Card padding="lg">
+        <h2 className="text-h4 text-[var(--text-primary)]">Formulários vinculados</h2>
+        {(() => {
+          if (detailsLoading && formDetails.length === 0) {
+            return (
+              <ul className="mt-4 space-y-2">
+                {dashboard.formIds.map((formId) => (
+                  <li key={formId} className="h-14 animate-pulse rounded-lg bg-neutral-100 dark:bg-neutral-800" />
+                ))}
+              </ul>
+            );
+          }
+          if (formDetails.length > 0) {
+            return (
+              <ul className="mt-4 space-y-3">
+                {formDetails.map((f) => (
+                  <li
+                    key={f.formId}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-700"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <Link
+                        href={`/admin/forms/${f.formId}/responses`}
+                        className="font-medium text-primary-600 hover:underline dark:text-primary-400"
+                      >
+                        {f.title}
+                      </Link>
+                      <p className="mt-0.5 text-caption text-[var(--text-secondary)]">
+                        {f.count} resposta(s)
+                        {f.lastSubmittedAt
+                          ? ` · Última em ${new Date(f.lastSubmittedAt).toLocaleDateString("pt-BR")}`
+                          : ""}
+                      </p>
+                    </div>
+                    <Link href={`/admin/forms/${f.formId}/responses`}>
+                      <Button variant="ghost" size="sm" leftIcon={<ExternalLink className="h-4 w-4" />}>
+                        Ver respostas
+                      </Button>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            );
+          }
+          return (
+            <p className="mt-4 text-body text-[var(--text-secondary)]">
+              Nenhum formulário vinculado. Use Editar para adicionar.
+            </p>
+          );
+        })()}
+      </Card>
+
+      {editModal && (
+        <Modal
+          open
+          onClose={() => setEditModal(false)}
+          title="Editar dashboard"
+          footer={
+            <>
+              <Button variant="secondary" size="sm" onClick={() => setEditModal(false)}>
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleSaveEdit} loading={saving} disabled={saving}>
+                Salvar
+              </Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <Input
+              label="Título"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              placeholder="Nome do dashboard"
+            />
+            <div>
+              <span className="mb-2 block text-small font-medium text-neutral-700 dark:text-neutral-300">
+                Formulários
+              </span>
+              {forms && forms.length > 0 ? (
+                <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
+                  {forms.map((f) => (
+                    <li key={f.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id={`edit-form-${f.id}`}
+                        checked={editFormIds.includes(f.id)}
+                        onChange={() => toggleEditFormId(f.id)}
+                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                      />
+                      <label
+                        htmlFor={`edit-form-${f.id}`}
+                        className="cursor-pointer text-body text-[var(--text-primary)]"
+                      >
+                        {f.title}
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-caption text-[var(--text-secondary)]">Nenhum formulário disponível.</p>
+              )}
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {deleteModal && (
+        <Modal
+          open
+          onClose={() => setDeleteModal(false)}
+          title="Excluir dashboard"
+          footer={
+            <>
+              <Button variant="secondary" size="sm" onClick={() => setDeleteModal(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={handleDelete}
+                loading={deleting}
+                disabled={deleting}
               >
-                {formId}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {dashboard.formIds.length === 0 && (
-          <p className="text-slate-500">Nenhum formulário vinculado.</p>
-        )}
-      </div>
+                Excluir
+              </Button>
+            </>
+          }
+        >
+          <p className="text-body text-[var(--text-primary)]">
+            Excluir o dashboard &quot;{dashboard.title}&quot;? Esta ação não pode ser desfeita.
+          </p>
+        </Modal>
+      )}
     </div>
   );
 }

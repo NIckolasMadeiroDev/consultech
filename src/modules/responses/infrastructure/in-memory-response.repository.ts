@@ -53,6 +53,17 @@ export class InMemoryResponseRepository implements IResponseRepository {
     );
   }
 
+  async getSummaryByFormId(formId: string): Promise<{ count: number; lastSubmittedAt: Date | null }> {
+    const list = Array.from(responseStore.values()).filter((r) => r.formId === formId);
+    const sorted = [...list].sort(
+      (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()
+    );
+    return {
+      count: list.length,
+      lastSubmittedAt: sorted[0]?.submittedAt ?? null,
+    };
+  }
+
   async delete(id: string): Promise<boolean> {
     for (const [aid, a] of answerStore.entries()) {
       if (a.responseId === id) answerStore.delete(aid);

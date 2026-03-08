@@ -12,5 +12,6 @@ export interface IResponseRepository {
   findById(id: string): Promise<Response | null>;
   findByFormId(formId: string, filters?: ResponseFilters): Promise<Response[]>;
   getAnswersByResponseId(responseId: string): Promise<Answer[]>;
+  getSummaryByFormId(formId: string): Promise<{ count: number; lastSubmittedAt: Date | null }>;
   delete(id: string): Promise<boolean>;
 }

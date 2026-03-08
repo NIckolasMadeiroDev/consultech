@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GET, POST } from "@/app/api/dashboards/route";
-import { GET as getOne, PATCH } from "@/app/api/dashboards/[id]/route";
+import { GET as getOne, PATCH, DELETE } from "@/app/api/dashboards/[id]/route";
 
 vi.mock("@/infrastructure/database/repositories", () => ({
   getDashboardRepository: vi.fn(),
@@ -134,5 +134,25 @@ describe("PATCH /api/dashboards/[id]", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.title).toBe("Novo título");
+  });
+});
+
+describe("DELETE /api/dashboards/[id]", () => {
+  it("retorna 404 quando dashboard não existe", async () => {
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      delete: vi.fn().mockResolvedValue(false),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "d1" } });
+    expect(res.status).toBe(404);
+  });
+
+  it("retorna 204 quando dashboard é excluído", async () => {
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      delete: vi.fn().mockResolvedValue(true),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "d1" } });
+    expect(res.status).toBe(204);
   });
 });

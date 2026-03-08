@@ -85,6 +85,18 @@ export class PrismaResponseRepository implements IResponseRepository {
     return rows.map(toAnswerEntity);
   }
 
+  async getSummaryByFormId(formId: string): Promise<{ count: number; lastSubmittedAt: Date | null }> {
+    const [count, last] = await Promise.all([
+      this.prisma.response.count({ where: { formId } }),
+      this.prisma.response.findFirst({
+        where: { formId },
+        orderBy: { submittedAt: "desc" },
+        select: { submittedAt: true },
+      }),
+    ]);
+    return { count, lastSubmittedAt: last?.submittedAt ?? null };
+  }
+
   async delete(id: string): Promise<boolean> {
     try {
       await this.prisma.response.delete({ where: { id } });

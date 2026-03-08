@@ -119,6 +119,21 @@ export async function fetchFormResponses(formId: string, userId?: string) {
   return res.json();
 }
 
+export async function fetchFormResponsesSummary(
+  formId: string,
+  userId?: string
+): Promise<{ count: number; lastSubmittedAt: string | null }> {
+  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/responses/summary`, {
+    headers: getHeaders(userId),
+  });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Form not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch summary");
+  }
+  return res.json();
+}
+
 export async function downloadFormResponsesExport(
   formId: string,
   format: "csv" | "json" | "xlsx",
@@ -217,6 +232,18 @@ export async function updateDashboard(
     throw new Error((err as { error?: string }).error ?? "Failed to update dashboard");
   }
   return res.json();
+}
+
+export async function deleteDashboard(id: string, userId?: string): Promise<void> {
+  const res = await fetch(`${getBaseUrl()}/api/dashboards/${id}`, {
+    method: "DELETE",
+    headers: getHeaders(userId),
+  });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Dashboard not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to delete dashboard");
+  }
 }
 
 export async function submitResponse(data: {

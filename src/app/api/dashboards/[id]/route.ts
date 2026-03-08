@@ -38,3 +38,20 @@ export async function PATCH(
     return dashboardDTO(updated);
   });
 }
+
+export async function DELETE(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
+  try {
+    const { id } = context.params;
+    const repo = getDashboardRepository();
+    const deleted = await repo.delete(id);
+    if (!deleted) {
+      return Response.json({ error: "Dashboard not found" }, { status: 404 });
+    }
+    return new Response(null, { status: 204 });
+  } catch {
+    return Response.json({ error: "Internal error" }, { status: 500 });
+  }
+}
