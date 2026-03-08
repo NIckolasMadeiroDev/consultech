@@ -18,8 +18,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 
-type FormStatus = "draft" | "active" | "paused" | "archived";
-
 type FormItem = {
   id: string;
   title: string;

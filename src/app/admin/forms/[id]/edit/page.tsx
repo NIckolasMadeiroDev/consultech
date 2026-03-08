@@ -157,7 +157,7 @@ export default function EditFormPage() {
     const q = questions[index];
     const opts = (q?.options ?? []).filter((_, i) => i !== optIndex);
     setQuestionOptions(index, opts);
-  }, [setQuestionOptions]);
+  }, [questions, setQuestionOptions]);
 
   const addQuestion = useCallback(() => {
     setQuestions((q) => [
