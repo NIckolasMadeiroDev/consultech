@@ -5,6 +5,7 @@ import { updateFormSchema } from "@/modules/forms/form.schema";
 import { formWithQuestionsDTO, formDTO } from "@/modules/forms/form.dto";
 import { getFormRepository, getQuestionRepository, getAuditLogRepository } from "@/infrastructure/database/repositories";
 import { getSession } from "@/lib/auth-session";
+import type { Question } from "@/core/entities";
 
 export async function GET(
   req: NextRequest,
@@ -41,13 +42,31 @@ export async function PATCH(
         data.questions.map((q: { id?: string }) => q.id).filter(Boolean) as string[]
       );
       const idsToDelete = existing.filter((q) => !payloadIds.has(q.id)).map((q) => q.id);
-      const toUpdate: Array<{ id: string; type: string; text: string; required: boolean; orderIndex: number; options?: string[]; scaleMin?: number; scaleMax?: number }> = [];
-      const toCreate: Array<{ formId: string; type: string; text: string; required: boolean; orderIndex: number; options?: string[]; scaleMin?: number; scaleMax?: number }> = [];
+      const toUpdate: (Partial<Question> & { id: string })[] = [];
+      const toCreate: Array<Omit<Question, "id">> = [];
       data.questions.forEach((q: { id?: string; type: string; text: string; required: boolean; options?: string[]; scaleMin?: number; scaleMax?: number }, orderIndex: number) => {
         if (q.id && existingIds.has(q.id)) {
-          toUpdate.push({ id: q.id, type: q.type, text: q.text, required: q.required, orderIndex, options: q.options, scaleMin: q.scaleMin, scaleMax: q.scaleMax });
+          toUpdate.push({
+            id: q.id,
+            type: q.type as Question["type"],
+            text: q.text,
+            required: q.required,
+            orderIndex,
+            options: q.options,
+            scaleMin: q.scaleMin,
+            scaleMax: q.scaleMax,
+          });
         } else if (!q.id) {
-          toCreate.push({ formId: id, type: q.type, text: q.text, required: q.required, orderIndex, options: q.options, scaleMin: q.scaleMin, scaleMax: q.scaleMax });
+          toCreate.push({
+            formId: id,
+            type: q.type as Question["type"],
+            text: q.text,
+            required: q.required,
+            orderIndex,
+            options: q.options,
+            scaleMin: q.scaleMin,
+            scaleMax: q.scaleMax,
+          });
         }
       });
       if (toUpdate.length > 0) {
