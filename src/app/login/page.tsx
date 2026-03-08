@@ -7,9 +7,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setUserFromLogin } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,11 +28,12 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
         credentials: "include",
       });
-      const data = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({})) as { error?: string; user?: { id: string; email: string; name: string } };
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Erro ao entrar");
+        setError(data.error ?? "Erro ao entrar");
         return;
       }
+      if (data.user) setUserFromLogin(data.user);
       router.replace("/admin/forms");
       router.refresh();
     } finally {

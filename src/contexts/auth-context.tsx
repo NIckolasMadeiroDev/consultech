@@ -12,6 +12,7 @@ type AuthState = {
   user: AdminUser | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  setUserFromLogin: (user: AdminUser) => void;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -19,6 +20,10 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { readonly children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const setUserFromLogin = useCallback((u: AdminUser) => {
+    setUser(u);
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/session", { credentials: "include" })
@@ -36,8 +41,8 @@ export function AuthProvider({ children }: { readonly children: React.ReactNode 
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, signOut }),
-    [user, loading, signOut]
+    () => ({ user, loading, signOut, setUserFromLogin }),
+    [user, loading, signOut, setUserFromLogin]
   );
 
   return (
@@ -54,6 +59,7 @@ export function useAuth(): AuthState {
       user: null,
       loading: false,
       signOut: async () => {},
+      setUserFromLogin: () => {},
     };
   }
   return ctx;
