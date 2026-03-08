@@ -4,6 +4,7 @@
  * está em conformidade com as regras de negócio e API.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 import { POST as createFormPost, GET as getFormsList } from "@/app/api/forms/route";
 import { GET as getFormById, PATCH as updateFormPatch } from "@/app/api/forms/[id]/route";
 import { POST as duplicatePost } from "@/app/api/forms/[id]/duplicate/route";
@@ -64,7 +65,7 @@ describe("Fluxo: formulários e respostas", () => {
           { id: "q2", formId, type: "scale", text: "Nota 0-5", required: true, orderIndex: 1, scaleMin: 0, scaleMax: 5 },
         ]),
       } as never);
-      const req = new Request("http://localhost/api/forms", {
+      const req = new NextRequest("http://localhost/api/forms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -109,11 +110,11 @@ describe("Fluxo: formulários e respostas", () => {
       vi.mocked(getQuestionRepository).mockReturnValue({
         findByFormId: vi.fn().mockResolvedValue(questions),
       } as never);
-      const listRes = await getFormsList(new Request("http://localhost/api/forms"));
+      const listRes = await getFormsList(new NextRequest("http://localhost/api/forms"));
       expect(listRes.status).toBe(200);
       const list = await listRes.json();
       expect(list.some((f: { id: string }) => f.id === formId)).toBe(true);
-      const getRes = await getFormById(new Request(`http://localhost/api/forms/${formId}`), { params: { id: formId } });
+      const getRes = await getFormById(new NextRequest(`http://localhost/api/forms/${formId}`), { params: { id: formId } });
       expect(getRes.status).toBe(200);
       const formJson = await getRes.json();
       expect(formJson.questions).toHaveLength(2);
@@ -139,7 +140,7 @@ describe("Fluxo: formulários e respostas", () => {
         findById: vi.fn().mockResolvedValue({ id: formId }),
         update: vi.fn().mockResolvedValue(updated),
       } as never);
-      const req = new Request(`http://localhost/api/forms/${formId}`, {
+      const req = new NextRequest(`http://localhost/api/forms/${formId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title: "Pesquisa Atualizada", status: "active" }),
@@ -171,7 +172,7 @@ describe("Fluxo: formulários e respostas", () => {
         findByFormId: vi.fn().mockResolvedValue([{ id: questionId, formId, type: "short_text", text: "P1", required: false, orderIndex: 0 }]),
         createMany: vi.fn().mockResolvedValue([]),
       } as never);
-      const req = new Request(`http://localhost/api/forms/${formId}/duplicate`, {
+      const req = new NextRequest(`http://localhost/api/forms/${formId}/duplicate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -199,7 +200,7 @@ describe("Fluxo: formulários e respostas", () => {
           updatedAt: new Date(),
         }),
       } as never);
-      const req = new Request(`http://localhost/api/forms/${formId}/archive`, { method: "POST" });
+      const req = new NextRequest(`http://localhost/api/forms/${formId}/archive`, { method: "POST" });
       const res = await archivePost(req, { params: { id: formId } });
       expect(res.status).toBe(200);
       const json = await res.json();
@@ -232,7 +233,7 @@ describe("Fluxo: formulários e respostas", () => {
           submittedAt: new Date(),
         }),
       } as never);
-      const req = new Request("http://localhost/api/responses/submit", {
+      const req = new NextRequest("http://localhost/api/responses/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -249,7 +250,7 @@ describe("Fluxo: formulários e respostas", () => {
     });
 
     it("POST /api/responses/submit rejeita formId inválido (UUID)", async () => {
-      const req = new Request("http://localhost/api/responses/submit", {
+      const req = new NextRequest("http://localhost/api/responses/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

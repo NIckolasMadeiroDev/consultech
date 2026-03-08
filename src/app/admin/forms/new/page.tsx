@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import * as api from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/contexts/toast-context";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ const STEP_LABELS: Record<number, string> = { 1: "Informações", 2: "Perguntas"
 export default function NewFormPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const toast = useToast();
   const userId = user?.id ?? "anonymous";
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
@@ -213,9 +215,12 @@ export default function NewFormPage() {
         }),
       };
       const form = await api.createForm(payload, userId);
+      toast("Formulário criado. Redirecionando para edição.", "success");
       router.push(`/admin/forms/${form.id}/edit`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erro ao salvar");
+      const msg = e instanceof Error ? e.message : "Erro ao criar formulário";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setSaving(false);
     }

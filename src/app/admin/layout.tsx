@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LayoutDashboard, Home, Search } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/contexts/toast-context";
 import { Navbar, ThemeToggle } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 
@@ -15,6 +16,7 @@ export default function AdminLayout({
 }) {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     if (loading) return;
@@ -25,6 +27,7 @@ export default function AdminLayout({
 
   async function handleSignOut() {
     await signOut();
+    toast("Você saiu. Até logo!", "info");
     router.replace("/login");
     router.refresh();
   }

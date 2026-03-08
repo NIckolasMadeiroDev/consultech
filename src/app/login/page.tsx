@@ -8,10 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout";
 import { useAuth } from "@/contexts/auth-context";
+import { useToast } from "@/contexts/toast-context";
+
+const REDIRECT_DELAY_MS = 400;
 
 export default function LoginPage() {
   const router = useRouter();
   const { setUserFromLogin } = useAuth();
+  const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,19 +35,29 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({})) as { error?: string; user?: { id: string; email: string; name: string } };
       if (!res.ok) {
         setError(data.error ?? "Erro ao entrar");
+        setLoading(false);
         return;
       }
       if (data.user) setUserFromLogin(data.user);
+      toast("Bem-vindo! Redirecionando para seus formulários.", "success");
       router.replace("/admin/forms");
       router.refresh();
+      setTimeout(() => {
+        if (globalThis.window !== undefined) {
+          globalThis.window.location.href = "/admin/forms";
+        }
+      }, REDIRECT_DELAY_MS);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao entrar");
+      toast(err instanceof Error ? err.message : "Erro ao entrar", "error");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--surface)] p-4">
-      <div className="absolute right-4 top-4">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--surface)] p-4 sm:p-6">
+      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
         <ThemeToggle />
       </div>
       <Card className="w-full max-w-sm" padding="lg">

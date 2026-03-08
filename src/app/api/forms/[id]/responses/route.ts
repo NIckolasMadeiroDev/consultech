@@ -36,8 +36,8 @@ export async function GET(
     const pageParam = url.searchParams.get("page");
     const limitParam = url.searchParams.get("limit");
     const usePagination = pageParam !== null || limitParam !== null;
-    const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(limitParam ?? "20", 10) || 20));
+    const page = Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(limitParam ?? "20", 10) || 20));
 
     if (usePagination) {
       const { data: responses, total } = await responseRepo.findPageByFormId(formId, {

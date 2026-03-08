@@ -224,7 +224,9 @@ export default function EditFormPage() {
         toast("Formulário salvo.", "success");
         if (saveAndReturn) router.push("/admin/forms");
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Erro ao salvar");
+        const msg = e instanceof Error ? e.message : "Erro ao salvar";
+        setError(msg);
+        toast(msg, "error");
       } finally {
         setSaving(false);
       }

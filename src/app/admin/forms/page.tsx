@@ -177,7 +177,23 @@ export default function AdminFormsPage() {
 
   if (error) {
     return (
-      <p className="text-body text-error">{error}</p>
+      <div>
+        <h1 className="mb-lg text-h2 text-[var(--text-primary)]">Formulários</h1>
+        <Card className="flex flex-col items-center justify-center py-12" padding="lg">
+          <p className="text-body text-[var(--text-secondary)]">{error}</p>
+          <Button
+            className="mt-6"
+            variant="primary"
+            onClick={async () => {
+              const ok = await refetch();
+              if (ok) toast("Lista atualizada.", "success");
+              else toast("Não foi possível recarregar. Tente de novo.", "error");
+            }}
+          >
+            Tentar novamente
+          </Button>
+        </Card>
+      </div>
     );
   }
 

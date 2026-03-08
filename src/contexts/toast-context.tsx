@@ -7,6 +7,8 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 
 export type ToastType = "success" | "error" | "info";
@@ -26,15 +28,22 @@ const ToastContext = createContext<ToastState | null>(null);
 
 const TOAST_DURATION_MS = 4000;
 
+function scheduleToastRemoval(
+  setToasts: Dispatch<SetStateAction<Toast[]>>,
+  id: string
+) {
+  setTimeout(() => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, TOAST_DURATION_MS);
+}
+
 export function ToastProvider({ children }: { readonly children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const toast = useCallback((message: string, type: ToastType = "info") => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, TOAST_DURATION_MS);
+    scheduleToastRemoval(setToasts, id);
   }, []);
 
   const value = useMemo(() => ({ toasts, toast }), [toasts, toast]);
@@ -54,7 +63,7 @@ function ToastContainer() {
   if (toasts.length === 0) return null;
   return (
     <div
-      className="fixed bottom-4 right-4 z-[100] flex max-w-sm flex-col gap-2"
+      className="fixed bottom-4 left-4 right-4 z-[100] flex max-w-sm flex-col gap-2 sm:left-auto sm:right-4"
       aria-live="polite"
     >
       {toasts.map((t) => (
