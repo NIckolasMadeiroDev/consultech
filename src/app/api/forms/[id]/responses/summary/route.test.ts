@@ -55,4 +55,23 @@ describe("GET /api/forms/[id]/responses/summary", () => {
     expect(json.count).toBe(0);
     expect(json.lastSubmittedAt).toBeNull();
   });
+
+  it("passa startDate e endDate para getSummaryByFormId quando informados na query", async () => {
+    vi.mocked(getFormRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({ id: "f1" }),
+    } as never);
+    const getSummary = vi.fn().mockResolvedValue({ count: 2, lastSubmittedAt: new Date("2025-03-01") });
+    vi.mocked(getResponseRepository).mockReturnValue({
+      getSummaryByFormId: getSummary,
+    } as never);
+    const req = new Request(
+      "http://localhost/api/forms/f1/responses/summary?startDate=2025-01-01T00:00:00.000Z&endDate=2025-03-01T23:59:59.999Z"
+    );
+    const res = await GET(req, { params: { id: "f1" } });
+    expect(res.status).toBe(200);
+    expect(getSummary).toHaveBeenCalledWith("f1", {
+      startDate: new Date("2025-01-01T00:00:00.000Z"),
+      endDate: new Date("2025-03-01T23:59:59.999Z"),
+    });
+  });
 });

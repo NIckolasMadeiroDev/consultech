@@ -18,6 +18,7 @@ describe("GET /api/forms/[id]/responses", () => {
     vi.mocked(getFormRepository).mockReturnValue({ findById: vi.fn() } as never);
     vi.mocked(getResponseRepository).mockReturnValue({
       findByFormId: vi.fn(),
+      findPageByFormId: vi.fn(),
       getAnswersByResponseId: vi.fn(),
     } as never);
     vi.mocked(getRespondentRepository).mockReturnValue({
@@ -65,5 +66,40 @@ describe("GET /api/forms/[id]/responses", () => {
     expect(json).toHaveLength(1);
     expect(json[0].respondent?.name).toBe("João");
     expect(json[0].answers).toHaveLength(1);
+  });
+
+  it("retorna 200 com data, total, page e limit quando page e limit são informados", async () => {
+    vi.mocked(getFormRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({ id: "f1" }),
+    } as never);
+    const responses = [
+      {
+        id: "r1",
+        formId: "f1",
+        respondentId: "resp1",
+        submittedAt: new Date(),
+      },
+    ];
+    vi.mocked(getResponseRepository).mockReturnValue({
+      findPageByFormId: vi.fn().mockResolvedValue({ data: responses, total: 1 }),
+      getAnswersByResponseId: vi.fn().mockResolvedValue([{ questionId: "q1", value: "R1" }]),
+    } as never);
+    vi.mocked(getRespondentRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({
+        id: "resp1",
+        name: "João",
+        email: "joao@e.com",
+        createdAt: new Date(),
+      }),
+    } as never);
+    const req = new Request("http://localhost/api/forms/f1/responses?page=1&limit=10");
+    const res = await GET(req, { params: { id: "f1" } });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data).toHaveLength(1);
+    expect(json.total).toBe(1);
+    expect(json.page).toBe(1);
+    expect(json.limit).toBe(10);
+    expect(json.data[0].respondent?.name).toBe("João");
   });
 });

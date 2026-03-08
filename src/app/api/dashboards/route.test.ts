@@ -6,7 +6,13 @@ vi.mock("@/infrastructure/database/repositories", () => ({
   getDashboardRepository: vi.fn(),
 }));
 
+vi.mock("@/lib/auth-session", () => ({
+  getSession: vi.fn().mockResolvedValue({ id: "admin", email: "a@b.com", name: "Admin" }),
+  getCreatedBy: vi.fn().mockResolvedValue("admin"),
+}));
+
 import { getDashboardRepository } from "@/infrastructure/database/repositories";
+import { getSession } from "@/lib/auth-session";
 
 describe("GET /api/dashboards", () => {
   beforeEach(() => {
@@ -69,6 +75,17 @@ describe("POST /api/dashboards", () => {
 });
 
 describe("GET /api/dashboards/[id]", () => {
+  it("retorna 401 quando não há sessão", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({ id: "d1", createdBy: "admin" }),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1");
+    const res = await getOne(req, { params: { id: "d1" } });
+    expect(res.status).toBe(401);
+    vi.mocked(getSession).mockResolvedValue({ id: "admin", email: "a@b.com", name: "Admin" });
+  });
+
   it("retorna 404 quando dashboard não existe", async () => {
     vi.mocked(getDashboardRepository).mockReturnValue({
       findById: vi.fn().mockResolvedValue(null),
@@ -78,7 +95,23 @@ describe("GET /api/dashboards/[id]", () => {
     expect(res.status).toBe(404);
   });
 
-  it("retorna 200 com dashboard", async () => {
+  it("retorna 404 quando dashboard pertence a outro usuário", async () => {
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({
+        id: "d1",
+        title: "Clima",
+        createdBy: "other-user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        formIds: ["f1"],
+      }),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1");
+    const res = await getOne(req, { params: { id: "d1" } });
+    expect(res.status).toBe(404);
+  });
+
+  it("retorna 200 com dashboard quando é dono", async () => {
     const dash = {
       id: "d1",
       title: "Clima",
@@ -102,7 +135,7 @@ describe("GET /api/dashboards/[id]", () => {
 describe("PATCH /api/dashboards/[id]", () => {
   it("retorna 404 quando dashboard não existe", async () => {
     vi.mocked(getDashboardRepository).mockReturnValue({
-      update: vi.fn().mockResolvedValue(null),
+      findById: vi.fn().mockResolvedValue(null),
     } as never);
     const req = new Request("http://localhost/api/dashboards/d1", {
       method: "PATCH",
@@ -113,7 +146,27 @@ describe("PATCH /api/dashboards/[id]", () => {
     expect(res.status).toBe(404);
   });
 
-  it("retorna 200 com dashboard atualizado", async () => {
+  it("retorna 404 quando não é dono", async () => {
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({
+        id: "d1",
+        title: "Clima",
+        createdBy: "other",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        formIds: [],
+      }),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "Novo" }),
+    });
+    const res = await PATCH(req, { params: { id: "d1" } });
+    expect(res.status).toBe(404);
+  });
+
+  it("retorna 200 com dashboard atualizado quando é dono", async () => {
     const updated = {
       id: "d1",
       title: "Novo título",
@@ -123,6 +176,7 @@ describe("PATCH /api/dashboards/[id]", () => {
       formIds: ["f1"],
     };
     vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({ ...updated, title: "Clima" }),
       update: vi.fn().mockResolvedValue(updated),
     } as never);
     const req = new Request("http://localhost/api/dashboards/d1", {
@@ -138,17 +192,52 @@ describe("PATCH /api/dashboards/[id]", () => {
 });
 
 describe("DELETE /api/dashboards/[id]", () => {
+  it("retorna 401 quando não há sessão", async () => {
+    vi.mocked(getSession).mockResolvedValue(null);
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({ id: "d1", createdBy: "admin" }),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "d1" } });
+    expect(res.status).toBe(401);
+    vi.mocked(getSession).mockResolvedValue({ id: "admin", email: "a@b.com", name: "Admin" });
+  });
+
   it("retorna 404 quando dashboard não existe", async () => {
     vi.mocked(getDashboardRepository).mockReturnValue({
-      delete: vi.fn().mockResolvedValue(false),
+      findById: vi.fn().mockResolvedValue(null),
     } as never);
     const req = new Request("http://localhost/api/dashboards/d1", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "d1" } });
     expect(res.status).toBe(404);
   });
 
-  it("retorna 204 quando dashboard é excluído", async () => {
+  it("retorna 404 quando não é dono", async () => {
     vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({
+        id: "d1",
+        title: "Clima",
+        createdBy: "other",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        formIds: [],
+      }),
+    } as never);
+    const req = new Request("http://localhost/api/dashboards/d1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "d1" } });
+    expect(res.status).toBe(404);
+  });
+
+  it("retorna 204 quando dashboard é excluído e é dono", async () => {
+    vi.mocked(getDashboardRepository).mockReturnValue({
+      findById: vi.fn().mockResolvedValue({
+        id: "d1",
+        title: "Clima",
+        createdBy: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        formIds: [],
+      }),
       delete: vi.fn().mockResolvedValue(true),
     } as never);
     const req = new Request("http://localhost/api/dashboards/d1", { method: "DELETE" });

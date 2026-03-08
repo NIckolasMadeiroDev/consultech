@@ -31,6 +31,28 @@ function toAnswerEntity(row: {
   };
 }
 
+function buildWhere(
+  formId: string,
+  filters?: ResponseFilters
+): { formId: string; respondentId?: string; submittedAt?: object } {
+  const where: { formId: string; respondentId?: string; submittedAt?: object } = {
+    formId,
+  };
+  if (filters?.respondentId) {
+    where.respondentId = filters.respondentId;
+  }
+  if (filters?.startDate ?? filters?.endDate) {
+    where.submittedAt = {};
+    if (filters.startDate) {
+      (where.submittedAt as { gte?: Date }).gte = filters.startDate;
+    }
+    if (filters.endDate) {
+      (where.submittedAt as { lte?: Date }).lte = filters.endDate;
+    }
+  }
+  return where;
+}
+
 export class PrismaResponseRepository implements IResponseRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -56,26 +78,31 @@ export class PrismaResponseRepository implements IResponseRepository {
   }
 
   async findByFormId(formId: string, filters?: ResponseFilters): Promise<Response[]> {
-    const where: { formId: string; respondentId?: string; submittedAt?: object } = {
-      formId,
-    };
-    if (filters?.respondentId) {
-      where.respondentId = filters.respondentId;
-    }
-    if (filters?.startDate ?? filters?.endDate) {
-      where.submittedAt = {};
-      if (filters.startDate) {
-        (where.submittedAt as { gte?: Date }).gte = filters.startDate;
-      }
-      if (filters.endDate) {
-        (where.submittedAt as { lte?: Date }).lte = filters.endDate;
-      }
-    }
+    const where = buildWhere(formId, filters);
     const rows = await this.prisma.response.findMany({
       where,
       orderBy: { submittedAt: "desc" },
     });
     return rows.map(toResponseEntity);
+  }
+
+  async findPageByFormId(
+    formId: string,
+    opts: { filters?: ResponseFilters; page: number; limit: number }
+  ): Promise<{ data: Response[]; total: number }> {
+    const where = buildWhere(formId, opts.filters);
+    const skip = Math.max(0, (opts.page - 1) * opts.limit);
+    const take = Math.min(100, Math.max(1, opts.limit));
+    const [total, rows] = await Promise.all([
+      this.prisma.response.count({ where }),
+      this.prisma.response.findMany({
+        where,
+        orderBy: { submittedAt: "desc" },
+        skip,
+        take,
+      }),
+    ]);
+    return { data: rows.map(toResponseEntity), total };
   }
 
   async getAnswersByResponseId(responseId: string): Promise<Answer[]> {
@@ -85,11 +112,15 @@ export class PrismaResponseRepository implements IResponseRepository {
     return rows.map(toAnswerEntity);
   }
 
-  async getSummaryByFormId(formId: string): Promise<{ count: number; lastSubmittedAt: Date | null }> {
+  async getSummaryByFormId(
+    formId: string,
+    filters?: ResponseFilters
+  ): Promise<{ count: number; lastSubmittedAt: Date | null }> {
+    const where = buildWhere(formId, filters);
     const [count, last] = await Promise.all([
-      this.prisma.response.count({ where: { formId } }),
+      this.prisma.response.count({ where }),
       this.prisma.response.findFirst({
-        where: { formId },
+        where,
         orderBy: { submittedAt: "desc" },
         select: { submittedAt: true },
       }),

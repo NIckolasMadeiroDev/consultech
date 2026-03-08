@@ -47,14 +47,35 @@ export class InMemoryResponseRepository implements IResponseRepository {
     );
   }
 
+  async findPageByFormId(
+    formId: string,
+    opts: { filters?: ResponseFilters; page: number; limit: number }
+  ): Promise<{ data: Response[]; total: number }> {
+    const list = await this.findByFormId(formId, opts.filters);
+    const total = list.length;
+    const start = Math.max(0, (opts.page - 1) * opts.limit);
+    const limit = Math.min(100, Math.max(1, opts.limit));
+    const data = list.slice(start, start + limit);
+    return { data, total };
+  }
+
   async getAnswersByResponseId(responseId: string): Promise<Answer[]> {
     return Array.from(answerStore.values()).filter(
       (a) => a.responseId === responseId
     );
   }
 
-  async getSummaryByFormId(formId: string): Promise<{ count: number; lastSubmittedAt: Date | null }> {
-    const list = Array.from(responseStore.values()).filter((r) => r.formId === formId);
+  async getSummaryByFormId(
+    formId: string,
+    filters?: ResponseFilters
+  ): Promise<{ count: number; lastSubmittedAt: Date | null }> {
+    let list = Array.from(responseStore.values()).filter((r) => r.formId === formId);
+    if (filters?.startDate) {
+      list = list.filter((r) => r.submittedAt >= filters.startDate!);
+    }
+    if (filters?.endDate) {
+      list = list.filter((r) => r.submittedAt <= filters.endDate!);
+    }
     const sorted = [...list].sort(
       (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()
     );

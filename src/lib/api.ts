@@ -121,11 +121,13 @@ export async function fetchFormResponses(formId: string, userId?: string) {
 
 export async function fetchFormResponsesSummary(
   formId: string,
-  userId?: string
+  userId?: string,
+  params?: { startDate?: string; endDate?: string }
 ): Promise<{ count: number; lastSubmittedAt: string | null }> {
-  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/responses/summary`, {
-    headers: getHeaders(userId),
-  });
+  const url = new URL(`${getBaseUrl()}/api/forms/${formId}/responses/summary`);
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  const res = await fetch(url.toString(), { headers: getHeaders(userId) });
   if (!res.ok) {
     if (res.status === 404) throw new Error("Form not found");
     const err = await res.json().catch(() => ({}));
@@ -174,6 +176,28 @@ export async function fetchDashboard(id: string) {
     if (res.status === 404) throw new Error("Dashboard not found");
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error ?? "Failed to fetch dashboard");
+  }
+  return res.json();
+}
+
+export async function fetchDashboardSummary(
+  id: string,
+  userId?: string,
+  params?: { startDate?: string; endDate?: string }
+): Promise<{
+  formIds: string[];
+  forms: Array<{ formId: string; title: string; count: number; lastSubmittedAt: string | null }>;
+  totalResponses: number;
+}> {
+  const url = new URL(`${getBaseUrl()}/api/dashboards/${id}/summary`);
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  const res = await fetch(url.toString(), { headers: getHeaders(userId) });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Unauthorized");
+    if (res.status === 404) throw new Error("Dashboard not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch dashboard summary");
   }
   return res.json();
 }

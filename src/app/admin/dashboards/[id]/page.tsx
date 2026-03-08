@@ -27,6 +27,26 @@ type FormWithSummary = {
   lastSubmittedAt: string | null;
 };
 
+type PeriodKey = "all" | "7" | "30";
+
+const PERIOD_OPTIONS: { value: PeriodKey; label: string }[] = [
+  { value: "all", label: "Todo o período" },
+  { value: "7", label: "Últimos 7 dias" },
+  { value: "30", label: "Últimos 30 dias" },
+];
+
+function getPeriodParams(period: PeriodKey): { startDate?: string; endDate?: string } {
+  if (period === "all") return {};
+  const end = new Date();
+  const start = new Date();
+  const days = period === "7" ? 7 : 30;
+  start.setDate(start.getDate() - days);
+  return {
+    startDate: start.toISOString(),
+    endDate: end.toISOString(),
+  };
+}
+
 function DashboardDetailSkeleton() {
   return (
     <div className="space-y-lg">
@@ -53,6 +73,7 @@ export default function DashboardDetailPage() {
   const toast = useToast();
   const [formDetails, setFormDetails] = useState<FormWithSummary[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [period, setPeriod] = useState<PeriodKey>("all");
   const [editModal, setEditModal] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editFormIds, setEditFormIds] = useState<string[]>([]);
@@ -61,33 +82,20 @@ export default function DashboardDetailPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (!dashboard || dashboard.formIds.length === 0) {
+    if (!dashboard || !id) {
       setFormDetails([]);
       return;
     }
     let cancelled = false;
     setDetailsLoading(true);
-    const formIds = dashboard.formIds;
-    Promise.all(
-      formIds.map(async (formId) => {
-        try {
-          const [form, summary] = await Promise.all([
-            api.fetchForm(formId).catch(() => ({ title: formId })),
-            api.fetchFormResponsesSummary(formId, userId).catch(() => ({ count: 0, lastSubmittedAt: null })),
-          ]);
-          return {
-            formId,
-            title: (form as { title?: string }).title ?? formId,
-            count: (summary as { count: number }).count ?? 0,
-            lastSubmittedAt: (summary as { lastSubmittedAt: string | null }).lastSubmittedAt ?? null,
-          };
-        } catch {
-          return { formId, title: formId, count: 0, lastSubmittedAt: null };
-        }
+    const params = getPeriodParams(period);
+    api
+      .fetchDashboardSummary(id, userId, params)
+      .then((summary) => {
+        if (!cancelled) setFormDetails(summary.forms);
       })
-    )
-      .then((list) => {
-        if (!cancelled) setFormDetails(list);
+      .catch(() => {
+        if (!cancelled) setFormDetails([]);
       })
       .finally(() => {
         if (!cancelled) setDetailsLoading(false);
@@ -95,7 +103,7 @@ export default function DashboardDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [dashboard, userId]);
+  }, [dashboard, id, userId, period]);
 
   const totalResponses = useMemo(
     () => formDetails.reduce((acc, f) => acc + f.count, 0),
@@ -234,7 +242,23 @@ export default function DashboardDetailPage() {
       </div>
 
       <Card padding="lg">
-        <h2 className="text-h4 text-[var(--text-primary)]">Formulários vinculados</h2>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-h4 text-[var(--text-primary)]">Formulários vinculados</h2>
+          <label className="flex items-center gap-2 text-small text-[var(--text-secondary)]">
+            <span>Período:</span>
+            <select
+              value={period}
+              onChange={(e) => setPeriod(e.target.value as PeriodKey)}
+              className="rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-1.5 text-body text-[var(--text-primary)] dark:border-neutral-600"
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
         {(() => {
           if (detailsLoading && formDetails.length === 0) {
             return (

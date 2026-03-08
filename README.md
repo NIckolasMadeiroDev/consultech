@@ -74,11 +74,14 @@ npm run test:coverage
 - `PATCH /api/forms/[id]` — Atualiza formulário (body: updateFormSchema)
 - `POST /api/forms/[id]/archive` — Arquivar formulário
 - `POST /api/forms/[id]/duplicate` — Duplicar formulário
-- `GET /api/forms/[id]/responses` — Respostas do formulário (com respondent e answers)
+- `GET /api/forms/[id]/responses` — Respostas do formulário (com respondent e answers). Query: `page`, `limit` (paginação)
+- `GET /api/forms/[id]/responses/summary` — Resumo: `{ count, lastSubmittedAt }`. Query opcional: `startDate`, `endDate` (ISO)
 - `GET /api/dashboards?createdBy=...` — Lista dashboards
 - `POST /api/dashboards` — Cria dashboard (body: createDashboardSchema)
-- `GET /api/dashboards/[id]` — Um dashboard
-- `PATCH /api/dashboards/[id]` — Atualiza dashboard (body: updateDashboardSchema)
+- `GET /api/dashboards/[id]` — Um dashboard (apenas dono)
+- `GET /api/dashboards/[id]/summary` — Resumo agregado: lista de formulários do dashboard com título, count e lastSubmittedAt. Query opcional: `startDate`, `endDate` (ISO)
+- `PATCH /api/dashboards/[id]` — Atualiza dashboard (apenas dono; body: updateDashboardSchema)
+- `DELETE /api/dashboards/[id]` — Exclui dashboard (apenas dono; 204)
 - `POST /api/responses/submit` — Submete resposta (body: submitResponseSchema; respondent opcional se form.allowAnonymous)
 - `POST /api/ai/chat` — Chat completion xAI (Grok)
 
