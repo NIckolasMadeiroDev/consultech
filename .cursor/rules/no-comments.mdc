@@ -1,0 +1,9 @@
+---
+description: Nenhum comentário no código
+alwaysApply: true
+---
+
+# Sem comentários
+
+- Não adicione comentários no código (nem // nem /* */).
+- Código deve ser autoexplicativo; use nomes claros e funções pequenas.

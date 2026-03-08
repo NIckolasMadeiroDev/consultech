@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  forms        Form[]
+  dashboards   Dashboard[]
+}
+
+model Form {
+  id             String   @id @default(uuid()) @db.Uuid
+  title          String
+  description    String?
+  status         String   @default("draft")
+  version        Int      @default(1)
+  slug           String?  @unique
+  allowAnonymous Boolean  @default(false) @map("allow_anonymous")
+  createdBy      String?  @map("created_by") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  admin          Admin?   @relation(fields: [createdBy], references: [id])
+  questions      Question[]
+  responses      Response[]
+}
+
+model Question {
+  id                  String   @id @default(uuid()) @db.Uuid
+  formId              String   @map("form_id") @db.Uuid
+  type                String
+  text                String
+  required            Boolean  @default(false)
+  orderIndex          Int      @default(0) @map("order_index")
+  options             Json?
+  scaleMin            Int?     @map("scale_min")
+  scaleMax            Int?     @map("scale_max")
+  conditionQuestionId String?  @map("condition_question_id") @db.Uuid
+  conditionOperator   String?  @map("condition_operator")
+  conditionValue      Json?    @map("condition_value")
+  form                Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+}
+
+model Respondent {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  email      String
+  employeeId String?  @map("employee_id")
+  department String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  responses  Response[]
+}
+
+model Response {
+  id           String   @id @default(uuid()) @db.Uuid
+  formId       String   @map("form_id") @db.Uuid
+  respondentId String   @map("respondent_id") @db.Uuid
+  submittedAt  DateTime @default(now()) @map("submitted_at")
+  form         Form     @relation(fields: [formId], references: [id])
+  respondent   Respondent @relation(fields: [respondentId], references: [id])
+  answers      Answer[]
+}
+
+model Answer {
+  id         String   @id @default(uuid()) @db.Uuid
+  responseId String   @map("response_id") @db.Uuid
+  questionId String   @map("question_id") @db.Uuid
+  value      Json
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+}
+
+model Dashboard {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  formIds   Json     @default("[]") @map("form_ids")
+  admin     Admin?   @relation(fields: [createdBy], references: [id])
+}
+
+model AiContextChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  content    String
+  createdAt  DateTime @default(now()) @map("created_at")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id") @db.Uuid
+  userId     String?  @map("user_id")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+}
