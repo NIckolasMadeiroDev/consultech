@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import type { AuditLog } from "@/core/entities";
 import type { CreateAuditLogInput, AuditLogFilters, IAuditLogRepository } from "../audit-log.repository.interface";
 
@@ -32,7 +33,7 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
         entityType: data.entityType,
         entityId: data.entityId,
         userId: data.userId ?? null,
-        metadata: data.metadata ?? undefined,
+        metadata: (data.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
       },
     });
     return toAuditLogEntity(row);

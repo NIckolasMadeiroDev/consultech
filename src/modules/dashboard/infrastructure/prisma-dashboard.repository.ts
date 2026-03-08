@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import type { Dashboard } from "@/core/entities";
-import type { CreateDashboardInput, UpdateDashboardData } from "../dashboard.repository.interface";
+import type { CreateDashboardInput, UpdateDashboardData, IDashboardRepository } from "../dashboard.repository.interface";
 
 function toDashboardEntity(row: {
   id: string;
