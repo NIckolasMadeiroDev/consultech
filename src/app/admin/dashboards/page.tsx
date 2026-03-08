@@ -8,11 +8,11 @@ import { useForms } from "@/hooks/useForms";
 import * as api from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/contexts/toast-context";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import { LayoutDashboard, Trash2, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Trash2, ExternalLink, Plus } from "lucide-react";
 
 type DashboardListItem = {
   id: string;
@@ -126,9 +126,9 @@ export default function AdminDashboardsPage() {
     return (
       <div>
         <h1 className="mb-lg text-h2 text-[var(--text-primary)]">Dashboards</h1>
-        <Card className="py-8 text-center" padding="lg">
+        <Card className="flex flex-col items-center justify-center py-12" padding="lg">
           <p className="text-body text-[var(--text-secondary)]">{error}</p>
-          <Button className="mt-4" variant="secondary" onClick={() => refetch()}>
+          <Button className="mt-6" variant="primary" onClick={() => refetch()}>
             Tentar novamente
           </Button>
         </Card>
@@ -140,68 +140,77 @@ export default function AdminDashboardsPage() {
     <div>
       <div className="mb-lg flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-h2 text-[var(--text-primary)]">Dashboards</h1>
+        <a href="#novo-dashboard" className="inline-flex">
+          <Button leftIcon={<Plus className="h-4 w-4" />}>
+            Novo dashboard
+          </Button>
+        </a>
       </div>
 
-      <Card className="mb-lg" padding="lg">
-        <h2 className="text-h4 text-[var(--text-primary)]">Novo dashboard</h2>
-        <form onSubmit={handleCreate} className="mt-4 space-y-4">
-          <Input
-            type="text"
-            label="Título"
-            placeholder="Ex.: Pesquisa de clima"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="max-w-md"
-          />
-          <div>
-            <span className="mb-2 block text-small font-medium text-neutral-700 dark:text-neutral-300">
-              Formulários
-            </span>
-            {(() => {
-              if (formsLoading) {
+      <Card id="novo-dashboard" className="mb-lg" padding="none">
+        <CardHeader className="p-xl pb-0">
+          <CardTitle>Novo dashboard</CardTitle>
+        </CardHeader>
+        <CardContent className="p-xl pt-lg">
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Input
+              type="text"
+              label="Título"
+              placeholder="Ex.: Pesquisa de clima"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="max-w-md"
+            />
+            <div>
+              <span className="mb-2 block text-small font-medium text-[var(--text-secondary)]">
+                Formulários
+              </span>
+              {(() => {
+                if (formsLoading) {
+                  return (
+                    <p className="text-caption text-[var(--text-secondary)]">Carregando formulários...</p>
+                  );
+                }
+                if (forms && forms.length > 0) {
+                  return (
+                    <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-neutral-200 bg-[var(--background)] p-lg dark:border-neutral-700">
+                      {forms.map((f) => (
+                        <li key={f.id} className="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            id={`form-${f.id}`}
+                            checked={selectedFormIds.includes(f.id)}
+                            onChange={() => toggleFormId(f.id)}
+                            className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:border-neutral-600"
+                          />
+                          <label
+                            htmlFor={`form-${f.id}`}
+                            className="cursor-pointer text-body text-[var(--text-primary)]"
+                          >
+                            {f.title}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  );
+                }
                 return (
-                  <p className="text-caption text-[var(--text-secondary)]">Carregando formulários...</p>
+                  <p className="text-caption text-[var(--text-secondary)]">
+                    Nenhum formulário. Crie um em Formulários primeiro.
+                  </p>
                 );
-              }
-              if (forms && forms.length > 0) {
-                return (
-                  <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
-                    {forms.map((f) => (
-                      <li key={f.id} className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id={`form-${f.id}`}
-                          checked={selectedFormIds.includes(f.id)}
-                          onChange={() => toggleFormId(f.id)}
-                          className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <label
-                          htmlFor={`form-${f.id}`}
-                          className="cursor-pointer text-body text-[var(--text-primary)]"
-                        >
-                          {f.title}
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                );
-              }
-              return (
-                <p className="text-caption text-[var(--text-secondary)]">
-                  Nenhum formulário. Crie um em Formulários primeiro.
-                </p>
-              );
-            })()}
-          </div>
-          {createError && (
-            <p className="text-small text-error" role="alert">
-              {createError}
-            </p>
-          )}
-          <Button type="submit" loading={creating} disabled={creating || !forms?.length}>
-            Criar dashboard
-          </Button>
-        </form>
+              })()}
+            </div>
+            {createError && (
+              <p className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-small text-error" role="alert">
+                {createError}
+              </p>
+            )}
+            <Button type="submit" loading={creating} disabled={creating || !forms?.length}>
+              Criar dashboard
+            </Button>
+          </form>
+        </CardContent>
       </Card>
 
       {dashboards && dashboards.length > 0 && (
@@ -224,10 +233,10 @@ export default function AdminDashboardsPage() {
         <ul className="flex flex-col gap-md">
           {filteredAndSortedDashboards.map((d) => (
             <li key={d.id}>
-              <Card className="flex flex-wrap items-center justify-between gap-4" padding="md">
+              <Card className="flex flex-wrap items-center justify-between gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
                 <div className="min-w-0 flex-1">
                   <span className="font-medium text-[var(--text-primary)]">{d.title}</span>
-                  <p className="mt-0.5 text-caption text-[var(--text-secondary)]">
+                  <p className="mt-1 text-caption text-[var(--text-secondary)]">
                     {d.formIds.length} formulário(s) · Criado em{" "}
                     {new Date(d.createdAt).toLocaleDateString("pt-BR")}
                   </p>
@@ -255,7 +264,7 @@ export default function AdminDashboardsPage() {
 
       {dashboards?.length === 0 && (
         <Card className="flex flex-col items-center justify-center py-16" padding="lg">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+          <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
             <LayoutDashboard className="h-8 w-8 text-[var(--text-secondary)]" aria-hidden />
           </div>
           <h2 className="text-h4 text-[var(--text-primary)]">Nenhum dashboard ainda</h2>

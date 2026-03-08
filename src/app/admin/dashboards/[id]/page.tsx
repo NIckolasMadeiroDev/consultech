@@ -18,6 +18,7 @@ import {
   Trash2,
   Pencil,
   ExternalLink,
+  ChevronLeft,
 } from "lucide-react";
 
 type FormWithSummary = {
@@ -172,11 +173,11 @@ export default function DashboardDetailPage() {
     return (
       <div>
         <h1 className="mb-lg text-h2 text-[var(--text-primary)]">Dashboard</h1>
-        <Card className="py-8 text-center" padding="lg">
+        <Card className="flex flex-col items-center justify-center py-12" padding="lg">
           <p className="text-body text-[var(--text-secondary)]">
             {error ?? "Dashboard não encontrado."}
           </p>
-          <div className="mt-4 flex justify-center gap-2">
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Link href="/admin/dashboards">
               <Button variant="secondary">Voltar</Button>
             </Link>
@@ -197,9 +198,10 @@ export default function DashboardDetailPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Link
             href="/admin/dashboards"
-            className="text-small text-[var(--text-secondary)] hover:underline"
+            className="inline-flex items-center gap-1 text-small text-[var(--text-secondary)] hover:underline"
           >
-            ← Voltar
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Voltar
           </Link>
           <h1 className="text-h2 text-[var(--text-primary)]">{dashboard.title}</h1>
         </div>
@@ -219,7 +221,7 @@ export default function DashboardDetailPage() {
       </div>
 
       <div className="mb-lg grid gap-md sm:grid-cols-2">
-        <Card className="flex items-center gap-4" padding="md">
+        <Card className="flex items-center gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
             <FileText className="h-6 w-6 text-primary-600 dark:text-primary-400" aria-hidden />
           </div>
@@ -228,7 +230,7 @@ export default function DashboardDetailPage() {
             <p className="text-h4 text-[var(--text-primary)]">{dashboard.formIds.length}</p>
           </div>
         </Card>
-        <Card className="flex items-center gap-4" padding="md">
+        <Card className="flex items-center gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
             <MessageSquare className="h-6 w-6 text-primary-600 dark:text-primary-400" aria-hidden />
           </div>
@@ -262,7 +264,7 @@ export default function DashboardDetailPage() {
         {(() => {
           if (detailsLoading && formDetails.length === 0) {
             return (
-              <ul className="mt-4 space-y-2">
+              <ul className="pt-lg space-y-2">
                 {dashboard.formIds.map((formId) => (
                   <li key={formId} className="h-14 animate-pulse rounded-lg bg-neutral-100 dark:bg-neutral-800" />
                 ))}
@@ -271,38 +273,37 @@ export default function DashboardDetailPage() {
           }
           if (formDetails.length > 0) {
             return (
-              <ul className="mt-4 space-y-3">
+              <ul className="pt-lg space-y-3">
                 {formDetails.map((f) => (
-                  <li
-                    key={f.formId}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-700"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <Link
-                        href={`/admin/forms/${f.formId}/responses`}
-                        className="font-medium text-primary-600 hover:underline dark:text-primary-400"
-                      >
-                        {f.title}
+                  <li key={f.formId}>
+                    <Card className="flex flex-wrap items-center justify-between gap-3" padding="md">
+                      <div className="min-w-0 flex-1">
+                        <Link
+                          href={`/admin/forms/${f.formId}/responses`}
+                          className="font-medium text-primary-600 hover:underline dark:text-primary-400"
+                        >
+                          {f.title}
+                        </Link>
+                        <p className="mt-1 text-caption text-[var(--text-secondary)]">
+                          {f.count} resposta(s)
+                          {f.lastSubmittedAt
+                            ? ` · Última em ${new Date(f.lastSubmittedAt).toLocaleDateString("pt-BR")}`
+                            : ""}
+                        </p>
+                      </div>
+                      <Link href={`/admin/forms/${f.formId}/responses`}>
+                        <Button variant="ghost" size="sm" leftIcon={<ExternalLink className="h-4 w-4" />}>
+                          Ver respostas
+                        </Button>
                       </Link>
-                      <p className="mt-0.5 text-caption text-[var(--text-secondary)]">
-                        {f.count} resposta(s)
-                        {f.lastSubmittedAt
-                          ? ` · Última em ${new Date(f.lastSubmittedAt).toLocaleDateString("pt-BR")}`
-                          : ""}
-                      </p>
-                    </div>
-                    <Link href={`/admin/forms/${f.formId}/responses`}>
-                      <Button variant="ghost" size="sm" leftIcon={<ExternalLink className="h-4 w-4" />}>
-                        Ver respostas
-                      </Button>
-                    </Link>
+                    </Card>
                   </li>
                 ))}
               </ul>
             );
           }
           return (
-            <p className="mt-4 text-body text-[var(--text-secondary)]">
+            <p className="pt-lg text-body text-[var(--text-secondary)]">
               Nenhum formulário vinculado. Use Editar para adicionar.
             </p>
           );
@@ -333,19 +334,19 @@ export default function DashboardDetailPage() {
               placeholder="Nome do dashboard"
             />
             <div>
-              <span className="mb-2 block text-small font-medium text-neutral-700 dark:text-neutral-300">
+              <span className="mb-2 block text-small font-medium text-[var(--text-secondary)]">
                 Formulários
               </span>
               {forms && forms.length > 0 ? (
-                <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-neutral-200 p-3 dark:border-neutral-700">
+                <ul className="max-h-48 space-y-2 overflow-y-auto rounded-lg border border-neutral-200 bg-[var(--background)] p-lg dark:border-neutral-700">
                   {forms.map((f) => (
-                    <li key={f.id} className="flex items-center gap-2">
+                    <li key={f.id} className="flex items-center gap-3">
                       <input
                         type="checkbox"
                         id={`edit-form-${f.id}`}
                         checked={editFormIds.includes(f.id)}
                         onChange={() => toggleEditFormId(f.id)}
-                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                        className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:border-neutral-600"
                       />
                       <label
                         htmlFor={`edit-form-${f.id}`}
