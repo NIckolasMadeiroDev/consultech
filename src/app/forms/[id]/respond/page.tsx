@@ -4,9 +4,18 @@ import { useParams } from "next/navigation";
 import { useState, useMemo } from "react";
 import { useForm } from "@/hooks/useForm";
 import Link from "next/link";
+import { ChevronLeft, CheckCircle } from "lucide-react";
+import { ThemeToggle } from "@/components/layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+
+const inputBaseClass =
+  "h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600";
+const textareaClass =
+  "mt-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2.5 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600";
+const radioCheckClass =
+  "h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:border-neutral-600";
 
 type AnswerValue = string | number | boolean | string[];
 
@@ -49,24 +58,45 @@ export default function RespondFormPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--background)] p-4">
-        <p className="text-body text-[var(--text-secondary)]">Carregando...</p>
+      <main className="flex min-h-screen flex-col bg-[var(--background)]">
+        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3 sm:px-6 dark:border-neutral-700">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Voltar
+          </Link>
+          <ThemeToggle />
+        </header>
+        <div className="flex flex-1 items-center justify-center p-4 sm:p-6">
+          <p className="text-body text-[var(--text-secondary)]">Carregando...</p>
+        </div>
       </main>
     );
   }
   if (error || !form) {
     return (
-      <main className="min-h-screen bg-[var(--background)] p-4 sm:p-6">
-        <div className="mx-auto max-w-lg">
-          <p className="text-body text-error" role="alert">
-            {error ?? "Formulário não encontrado."}
-          </p>
+      <main className="flex min-h-screen flex-col bg-[var(--background)]">
+        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3 sm:px-6 dark:border-neutral-700">
           <Link
             href="/"
-            className="mt-4 inline-block text-body text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400"
+            className="inline-flex items-center gap-1 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
             Voltar
           </Link>
+          <ThemeToggle />
+        </header>
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center p-4 sm:p-6">
+          <Card className="w-full text-center" padding="lg">
+            <p className="text-body text-[var(--text-secondary)]" role="alert">
+              {error ?? "Formulário não encontrado."}
+            </p>
+            <Link href="/" className="mt-6 inline-block">
+              <Button variant="primary">Voltar ao início</Button>
+            </Link>
+          </Card>
         </div>
       </main>
     );
@@ -74,25 +104,46 @@ export default function RespondFormPage() {
 
   if (form.status !== "active") {
     return (
-      <main className="min-h-screen bg-[var(--background)] p-4 sm:p-6">
-        <div className="mx-auto max-w-lg">
-          <p className="text-body text-warning">
-            Este formulário não está disponível para respostas.
-          </p>
+      <main className="flex min-h-screen flex-col bg-[var(--background)]">
+        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3 sm:px-6 dark:border-neutral-700">
           <Link
             href="/"
-            className="mt-4 inline-block text-body text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400"
+            className="inline-flex items-center gap-1 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
             Voltar
           </Link>
+          <ThemeToggle />
+        </header>
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center p-4 sm:p-6">
+          <Card className="w-full text-center" padding="lg">
+            <p className="text-body text-[var(--text-secondary)]">
+              Este formulário não está disponível para respostas no momento.
+            </p>
+            <Link href="/" className="mt-6 inline-block">
+              <Button variant="primary">Voltar ao início</Button>
+            </Link>
+          </Card>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[var(--background)] p-4 sm:p-6 md:p-8">
-      <RespondFormView formId={form.id} form={form} />
+    <main className="min-h-screen bg-[var(--background)]">
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-neutral-200 bg-[var(--background)]/95 px-4 py-3 backdrop-blur sm:px-6 dark:border-neutral-700">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 text-small font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          Voltar ao início
+        </Link>
+        <ThemeToggle />
+      </header>
+      <div className="mx-auto max-w-content px-4 py-6 sm:px-6 sm:py-8 md:px-8">
+        <RespondFormView formId={form.id} form={form} />
+      </div>
     </main>
   );
 }
@@ -176,15 +227,23 @@ function RespondFormView({
   if (submitted) {
     return (
       <div className="mx-auto max-w-lg">
-        <Card padding="lg" className="border-success/30 bg-success/5 text-center">
-          <p className="text-body-lg font-medium text-[var(--text-primary)]">
+        <Card
+          padding="lg"
+          className="border-green-200 bg-green-50 text-center dark:border-green-800 dark:bg-green-950/40"
+        >
+          <div className="flex justify-center">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
+              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" aria-hidden />
+            </span>
+          </div>
+          <p className="mt-4 text-body-lg font-medium text-[var(--text-primary)]">
             Obrigado! Sua resposta foi registrada.
           </p>
-          <Link
-            href="/"
-            className="mt-4 inline-block text-body text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400"
-          >
-            Voltar ao início
+          <p className="mt-1 text-small text-[var(--text-secondary)]">
+            Você pode fechar esta página ou voltar ao início.
+          </p>
+          <Link href="/" className="mt-6 inline-block">
+            <Button variant="primary">Voltar ao início</Button>
           </Link>
         </Card>
       </div>
@@ -193,7 +252,7 @@ function RespondFormView({
 
   return (
     <div className="mx-auto max-w-lg">
-      <header className="mb-4 sm:mb-6">
+      <header className="mb-lg sm:mb-xl">
         <h1 className="text-h2 font-semibold text-[var(--text-primary)] sm:text-h1">
           {form.title}
         </h1>
@@ -215,7 +274,7 @@ function RespondFormView({
 
           {!form.allowAnonymous && (
             <section>
-              <h2 className="text-h4 text-[var(--text-primary)] mb-3">Seus dados</h2>
+              <h2 className="mb-lg text-h4 text-[var(--text-primary)]">Seus dados</h2>
               <div className="grid gap-4 sm:grid-cols-1">
                 <Input
                   id="respondent-name"
@@ -256,12 +315,12 @@ function RespondFormView({
           )}
 
           <section>
-            <h2 className="text-h4 text-[var(--text-primary)] mb-3">Perguntas</h2>
+            <h2 className="mb-lg text-h4 text-[var(--text-primary)]">Perguntas</h2>
             <ul className="space-y-4">
               {visibleQuestions.map((q) => (
                 <li
                   key={q.id}
-                  className="rounded-lg border border-neutral-200 bg-[var(--surface)] p-4 dark:border-neutral-700"
+                  className="rounded-lg border border-neutral-200 bg-[var(--surface)] p-lg transition-colors duration-150 dark:border-neutral-700"
                 >
                   <label className="block text-small font-medium text-[var(--text-primary)]">
                     {q.text}
@@ -273,7 +332,7 @@ function RespondFormView({
                       type="text"
                       value={(answers[q.id] as string) ?? ""}
                       onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                      className="mt-2 h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                      className={`mt-2 ${inputBaseClass}`}
                       required={q.required}
                     />
                   )}
@@ -281,7 +340,7 @@ function RespondFormView({
                     <textarea
                       value={(answers[q.id] as string) ?? ""}
                       onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                      className="mt-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2.5 text-body text-[var(--text-primary)] outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                      className={textareaClass}
                       rows={3}
                       required={q.required}
                     />
@@ -294,7 +353,7 @@ function RespondFormView({
                           name={q.id}
                           checked={answers[q.id] === true}
                           onChange={() => setAnswers((a) => ({ ...a, [q.id]: true }))}
-                          className="h-4 w-4 border-neutral-300 text-primary-600 focus:ring-primary-500"
+                          className={radioCheckClass}
                         />
                         <span>Sim</span>
                       </label>
@@ -304,7 +363,7 @@ function RespondFormView({
                           name={q.id}
                           checked={answers[q.id] === false}
                           onChange={() => setAnswers((a) => ({ ...a, [q.id]: false }))}
-                          className="h-4 w-4 border-neutral-300 text-primary-600 focus:ring-primary-500"
+                          className={radioCheckClass}
                         />
                         <span>Não</span>
                       </label>
@@ -320,7 +379,7 @@ function RespondFormView({
                           [q.id]: e.target.value ? Number(e.target.value) : "",
                         }))
                       }
-                      className="mt-2 h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                      className={`mt-2 ${inputBaseClass}`}
                       required={q.required}
                     />
                   )}
@@ -329,7 +388,7 @@ function RespondFormView({
                       type="date"
                       value={(answers[q.id] as string) ?? ""}
                       onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                      className="mt-2 h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                      className={`mt-2 ${inputBaseClass}`}
                       required={q.required}
                     />
                   )}
@@ -364,7 +423,7 @@ function RespondFormView({
                             value={opt}
                             checked={answers[q.id] === opt}
                             onChange={() => handleMultipleChoiceSelect(q.id, opt)}
-                            className="h-4 w-4 border-neutral-300 text-primary-600 focus:ring-primary-500"
+                            className={radioCheckClass}
                           />
                           {opt}
                         </label>
@@ -382,7 +441,7 @@ function RespondFormView({
                             type="checkbox"
                             checked={((answers[q.id] as string[]) ?? []).includes(opt)}
                             onChange={(e) => handleCheckboxChange(q.id, opt, e.target.checked)}
-                            className="h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                            className={radioCheckClass}
                           />
                           {opt}
                         </label>

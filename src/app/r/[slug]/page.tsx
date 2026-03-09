@@ -29,8 +29,11 @@ export default function ShortLinkPage() {
   }, [slug, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <p className="text-slate-600">Redirecionando...</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] p-4">
+      <p className="text-body text-[var(--text-secondary)]">Redirecionando...</p>
+      <div className="mt-3 h-1 w-24 overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700">
+        <div className="h-full w-1/2 animate-pulse rounded-full bg-primary-500" />
+      </div>
     </div>
   );
 }
