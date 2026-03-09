@@ -23,6 +23,7 @@ import {
   FinanceAccessProvider,
   useFinanceAccess,
 } from "@/contexts/finance-access-context";
+import { useAuth } from "@/contexts/auth-context";
 
 const NAV_ITEMS = [
   { href: "/finance", label: "Dashboard", icon: LayoutDashboard },
@@ -210,27 +211,64 @@ function FinanceAIChatPanel({ onClose }: Readonly<{ onClose: () => void }>) {
 
 function FinanceModeChooser() {
   const { mode, setMode } = useFinanceAccess();
+  const { user, loading, signOut } = useAuth();
+
+  // Enquanto o estado de autenticação está carregando, não mostramos o chooser
+  if (loading && mode === null) return null;
 
   if (mode !== null) return null;
+
+  const handleAdminClick = () => {
+    if (user) {
+      setMode("admin");
+      return;
+    }
+    // Se não estiver logado, redireciona para o login admin.
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  };
+
+  const handleVisitorClick = () => {
+    setMode("visitor");
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    // Mantém o chooser aberto para o usuário escolher novamente
+  };
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
       <Card padding="lg" className="max-w-md">
         <h2 className="text-h3 text-[var(--text-primary)]">Como deseja acessar o financeiro?</h2>
         <p className="mt-2 text-body text-[var(--text-secondary)]">
-          Você pode entrar como <strong>administrador</strong>, com acesso total, ou como{" "}
-          <strong>visitante</strong>, apenas para visualizar dados (sem cadastrar ou editar nada).
+          Você pode entrar como <strong>administrador</strong> (mesmo login do painel admin) ou como{" "}
+          <strong>visitante</strong> (apenas leitura, como um portal de transparência).
         </p>
+        {user && (
+          <p className="mt-2 rounded-md bg-neutral-100 px-3 py-2 text-small text-[var(--text-secondary)] dark:bg-neutral-800">
+            Logado como <strong className="text-[var(--text-primary)]">{user.name}</strong>{" "}
+            (<span className="font-mono">{user.email}</span>).{" "}
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="text-primary-600 hover:underline dark:text-primary-400"
+            >
+              Sair
+            </button>
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Button
             variant="secondary"
-            onClick={() => setMode("visitor")}
+            onClick={handleVisitorClick}
           >
             Entrar como visitante
           </Button>
           <Button
             variant="primary"
-            onClick={() => setMode("admin")}
+            onClick={handleAdminClick}
           >
             Entrar como admin
           </Button>
