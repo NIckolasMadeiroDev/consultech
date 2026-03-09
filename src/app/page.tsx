@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 
-type DevModalType = "financeiro" | "tutorial" | null;
+type DevModalType = "financeiro" | null;
 
 export default function Home() {
   const [devModal, setDevModal] = useState<DevModalType>(null);
@@ -25,7 +25,7 @@ export default function Home() {
         <Modal
           open={true}
           onClose={() => setDevModal(null)}
-          title={devModal === "financeiro" ? "Financeiro" : "Tutorial"}
+          title="Financeiro"
           footer={
             <Button variant="primary" size="md" onClick={() => setDevModal(null)}>
               Fechar
@@ -150,14 +150,7 @@ export default function Home() {
               </Card>
             </button>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setDevModal("tutorial");
-              }}
-              className="block w-full text-left transition-transform duration-150 ease-out hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-[var(--background)] rounded-xl"
-            >
+            <Link href="/tutorial" className="block transition-transform duration-150 ease-out hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-[var(--background)] rounded-xl">
               <Card
                 padding="lg"
                 className="h-full border-neutral-200 bg-[var(--surface)] dark:border-neutral-700"
@@ -177,7 +170,7 @@ export default function Home() {
                   </span>
                 </div>
               </Card>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

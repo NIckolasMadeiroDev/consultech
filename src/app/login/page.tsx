@@ -103,6 +103,13 @@ export default function LoginPage() {
           >
             Voltar ao início
           </Link>
+          {" · "}
+          <Link
+            href="/tutorial"
+            className="text-primary-600 hover:text-primary-700 hover:underline dark:text-primary-400"
+          >
+            Ver tutorial
+          </Link>
         </p>
       </Card>
     </main>
