@@ -150,7 +150,11 @@ export default function Home() {
               </Card>
             </button>
 
-            <Link href="/tutorial" className="block transition-transform duration-150 ease-out hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-[var(--background)] rounded-xl">
+            <Link
+              href="/tutorial"
+              className="block transition-transform duration-150 ease-out hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-[var(--background)] rounded-xl"
+              aria-label="Abrir tutorial do sistema"
+            >
               <Card
                 padding="lg"
                 className="h-full border-neutral-200 bg-[var(--surface)] dark:border-neutral-700"

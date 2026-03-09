@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LayoutDashboard, Home, Search } from "lucide-react";
+import { LayoutDashboard, Home, Search, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/contexts/toast-context";
 import { Navbar, ThemeToggle } from "@/components/layout";
@@ -80,6 +80,14 @@ export default function AdminLayout({
             >
               <LayoutDashboard className="h-4 w-4" />
               Dashboards
+            </Link>
+            <Link
+              href="/tutorial"
+              className="hidden items-center gap-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:inline-flex"
+              title="Ver tutorial do sistema"
+            >
+              <BookOpen className="h-4 w-4" />
+              Tutorial
             </Link>
             <span className="hidden max-w-[140px] truncate text-caption text-[var(--text-secondary)] sm:inline">
               {user.email}
