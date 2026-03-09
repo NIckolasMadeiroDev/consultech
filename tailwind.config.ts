@@ -37,6 +37,17 @@ const config: Config = {
         success: "#22C55E",
         warning: "#F59E0B",
         error: "#EF4444",
+        // Módulo financeiro: cores semânticas (clareza absoluta)
+        "finance-entry": {
+          DEFAULT: "#16A34A",
+          dark: "#22C55E",
+        },
+        "finance-exit": {
+          DEFAULT: "#DC2626",
+          dark: "#EF4444",
+        },
+        "finance-neutral": "#64748B",
+        "finance-warning": "#F59E0B",
       },
       spacing: {
         xs: "0.25rem",
@@ -57,6 +68,11 @@ const config: Config = {
         body: ["1rem", { lineHeight: "1.5", fontWeight: "400" }],
         small: ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
         caption: ["0.75rem", { lineHeight: "1.5", fontWeight: "400" }],
+        // Financeiro: hierarquia de valores (mono)
+        "finance-balance": ["2rem", { lineHeight: "1.25", fontWeight: "600" }],
+        "finance-dashboard": ["1.5rem", { lineHeight: "1.25", fontWeight: "600" }],
+        "finance-table": ["1rem", { lineHeight: "1.5", fontWeight: "400" }],
+        "finance-aux": ["0.875rem", { lineHeight: "1.5", fontWeight: "400" }],
       },
       borderRadius: {
         xs: "4px",

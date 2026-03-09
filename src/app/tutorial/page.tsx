@@ -92,6 +92,7 @@ export default function TutorialPage() {
                 { id: "formularios", label: "Formulários" },
                 { id: "respostas", label: "Respostas" },
                 { id: "dashboards", label: "Dashboards" },
+                { id: "financeiro", label: "Financeiro" },
                 { id: "responder", label: "Responder" },
                 { id: "sugestoes", label: "Sugestões" },
                 { id: "desenvolvimento", label: "Desenvolvimento" },
@@ -220,6 +221,248 @@ export default function TutorialPage() {
           </Step>
         </Section>
 
+        <Section id="financeiro" title="Módulo Financeiro" icon={LayoutDashboard}>
+          <p className="mb-lg text-body text-[var(--text-secondary)]">
+            O módulo financeiro traz uma visão completa de <strong className="text-[var(--text-primary)]">caixas, movimentações, contas a pagar/receber, relatórios e auditoria</strong>,
+            além de um chat de <strong className="text-[var(--text-primary)]">IA Financeira</strong> para tirar dúvidas sobre os dados.
+          </p>
+
+          <Step number={1} title="Entrar como admin ou visitante">
+            <p className="mb-2">
+              Ao acessar qualquer rota em <code className="rounded bg-neutral-200 px-1 font-mono text-caption dark:bg-neutral-700">/finance</code>, é exibido um painel perguntando como você quer acessar:
+            </p>
+            <ul className="mb-2 list-inside list-disc space-y-1">
+              <li>
+                <strong>Admin:</strong> acesso completo para <strong>cadastrar, editar, excluir, quitar e receber</strong> no financeiro.
+              </li>
+              <li>
+                <strong>Visitante:</strong> acesso somente leitura, funcionando como um <strong>portal de transparência</strong> — você vê tudo,
+                mas <strong>não consegue alterar nada</strong> (todos os botões de ação somem).
+              </li>
+            </ul>
+            <p>
+              A escolha vale enquanto você navega dentro do módulo financeiro. Ao sair e voltar, a pergunta é exibida novamente.
+            </p>
+          </Step>
+
+          <Step number={2} title="Dashboard financeiro (/finance)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Mostra o <strong>saldo atual</strong>, <strong>entradas no mês</strong> e <strong>saídas no mês</strong>, com indicação do período (ex.: mês atual).
+              </li>
+              <li>
+                Traz atalhos para <strong>Movimentações</strong> e <strong>Caixas</strong>, facilitando a navegação.
+              </li>
+              <li>
+                Em caso de erro ao carregar, o botão <strong>Tentar novamente</strong> recarrega apenas os dados do dashboard.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={3} title="Caixas (/finance/caixas)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                A lista exibe todos os <strong>caixas</strong> (ex.: Caixa principal, Caixa filial X), com <strong>nome, descrição, saldo calculado e status</strong>.
+              </li>
+              <li>
+                Em modo <strong>admin</strong>:
+                <ul className="list-inside list-disc pl-4">
+                  <li>Clique em <strong>Novo caixa</strong> para criar (nome obrigatório, descrição opcional, ativo por padrão).</li>
+                  <li>Use <strong>Editar</strong> em cada card para alterar nome, descrição ou ativar/inativar.</li>
+                </ul>
+              </li>
+              <li>
+                Em modo <strong>visitante</strong>, os botões de novo e editar não aparecem — você só vê os saldos e detalhes.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={4} title="Categorias financeiras (/finance/categorias)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                As categorias são exibidas em formato de <strong>árvore</strong>, respeitando a hierarquia (categoria &rarr; subcategoria),
+                separadas por tipo: <strong>Receita</strong> ou <strong>Despesa</strong>.
+              </li>
+              <li>
+                Em modo <strong>admin</strong>:
+                <ul className="list-inside list-disc pl-4">
+                  <li>
+                    Clique em <strong>Nova categoria</strong> para cadastrar (nome, tipo e opcionalmente escolher a categoria pai para criar subcategorias).
+                  </li>
+                  <li>
+                    Use <strong>Editar</strong> em uma categoria para alterar nome, tipo ou mover para outra categoria pai.
+                  </li>
+                  <li>
+                    Use <strong>Excluir</strong> apenas em categorias que não possuem subcategorias (o sistema bloqueia exclusão com filhos).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Em modo <strong>visitante</strong>, você vê toda a árvore, mas não há botões de criar, editar ou excluir.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={5} title="Formas de pagamento (/finance/formas-pagamento)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Tela para gerenciar <strong>formas de pagamento</strong> usadas nas movimentações (Dinheiro, PIX, Cartão de crédito, Boleto, etc.).
+              </li>
+              <li>
+                Em modo <strong>admin</strong>:
+                <ul className="list-inside list-disc pl-4">
+                  <li><strong>Nova forma de pagamento</strong>: exige apenas o nome.</li>
+                  <li>
+                    <strong>Editar</strong>: permite renomear a forma (desde que o nome não fique vazio).
+                  </li>
+                  <li>
+                    <strong>Excluir</strong>: só é permitido se a forma <strong>não tiver sido usada</strong> em movimentações; caso contrário, o sistema mostra um erro explicando.
+                  </li>
+                </ul>
+              </li>
+              <li>Em modo <strong>visitante</strong>, a lista é apenas de leitura.</li>
+            </ul>
+          </Step>
+
+          <Step number={6} title="Movimentações (/finance/movimentacoes)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Lista de todas as <strong>movimentações</strong> (entradas, saídas, transferências, sangrias e suprimentos), com filtros por:
+                período, tipo, caixa e categoria.
+              </li>
+              <li>
+                Em modo <strong>admin</strong>:
+                <ul className="list-inside list-disc pl-4">
+                  <li>
+                    Botão <strong>Nova movimentação</strong>: abre o formulário para registrar entradas/saídas/transferências, escolhendo caixa(s), categoria, forma de pagamento, valor e descrição.
+                  </li>
+                  <li>
+                    Em cada linha da tabela, os links <strong>Editar</strong> e <strong>Excluir</strong> permitem ajustar ou remover uma movimentação.
+                  </li>
+                  <li>
+                    A paginação na parte inferior mostra quantos registros existem e permite navegar entre páginas.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Em modo <strong>visitante</strong>, os filtros e a visualização da tabela permanecem disponíveis, mas os botões de
+                <strong> Nova movimentação</strong>, <strong>Editar</strong> e <strong>Excluir</strong> são ocultados.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={7} title="Contas a pagar (/finance/contas-pagar)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Tela dividida em <strong>Pendentes</strong> e <strong>Pagas</strong>, com lista de contas a pagar (descrição, valor, vencimento,
+                categoria, forma de pagamento e caixa).
+              </li>
+              <li>
+                Em modo <strong>admin</strong>:
+                <ul className="list-inside list-disc pl-4">
+                  <li>
+                    <strong>Nova conta a pagar</strong>: cria uma obrigação com valor, vencimento, categoria, forma de pagamento e caixa previsto.
+                  </li>
+                  <li>
+                    <strong>Editar</strong>: permite alterar os dados enquanto a conta estiver pendente.
+                  </li>
+                  <li>
+                    <strong>Quitar</strong>: abre um modal para escolher o caixa de débito; ao confirmar, é criada uma movimentação
+                    de saída associada à conta, e o status muda para <strong>Paga</strong>.
+                  </li>
+                  <li>
+                    Excluir (via tela de edição/detalhe) aplica um <strong>cancelamento lógico</strong> (status <code className="rounded bg-neutral-200 px-1 font-mono text-caption dark:bg-neutral-700">cancelled</code>),
+                    sem remover o registro do banco.
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Em modo <strong>visitante</strong>, você acompanha todos os lançamentos (pendentes e pagos), mas não há botões de novo, editar ou quitar.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={8} title="Contas a receber (/finance/contas-receber)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Muito semelhante à tela de contas a pagar, porém para <strong>receitas futuras</strong>, com abas <strong>Pendentes</strong> e <strong>Recebidas</strong>.
+              </li>
+              <li>
+                Em modo <strong>admin</strong>:
+                <ul className="list-inside list-disc pl-4">
+                  <li>
+                    <strong>Nova conta a receber</strong>: registra um recebível com valor, vencimento, categoria, forma de pagamento e caixa previsto.
+                  </li>
+                  <li>
+                    <strong>Editar</strong>: permite ajustar os dados enquanto a conta estiver pendente.
+                  </li>
+                  <li>
+                    <strong>Receber</strong>: abre um modal para escolher o caixa de crédito; ao confirmar, é criada uma
+                    movimentação de entrada vinculada à conta, e o status muda para <strong>Recebida</strong>.
+                  </li>
+                  <li>
+                    Excluir (via tela de edição/detalhe) também faz um cancelamento lógico (status <code className="rounded bg-neutral-200 px-1 font-mono text-caption dark:bg-neutral-700">cancelled</code>).
+                  </li>
+                </ul>
+              </li>
+              <li>
+                Em modo <strong>visitante</strong>, as listas continuam visíveis, mas sem botões de cadastrar, editar ou receber.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={9} title="Relatórios financeiros (/finance/relatorios)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Permite consultar relatórios consolidados de <strong>fluxo de caixa por mês</strong> (entradas, saídas e saldo)
+                e <strong>receitas/despesas por categoria</strong>, em um período selecionado.
+              </li>
+              <li>
+                Use o filtro de período (datas inicial e final) e clique em <strong>Aplicar</strong> para recarregar os dados.
+              </li>
+              <li>
+                Tanto admins quanto visitantes podem usar os relatórios (são consultas de leitura).
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={10} title="Auditoria do financeiro (/finance/auditoria)">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                Lista registros de <strong>auditoria</strong> para entidades financeiras:
+                movimentações, caixas, categorias, formas de pagamento, contas a pagar e contas a receber.
+              </li>
+              <li>
+                Cada linha mostra <strong>data/hora</strong>, <strong>ação</strong> (ex.: <code className="rounded bg-neutral-200 px-1 font-mono text-caption dark:bg-neutral-700">cashbox.updated</code>),
+                <strong>tipo de entidade</strong>, <strong>ID</strong> e <strong>usuário</strong> (quando houver sessão).
+              </li>
+              <li>
+                A auditoria é apenas leitura; tanto admin quanto visitante podem consultar o log.
+              </li>
+            </ul>
+          </Step>
+
+          <Step number={11} title="Chat &quot;IA Financeira&quot;">
+            <ul className="list-inside list-disc space-y-1">
+              <li>
+                No canto inferior direito do módulo financeiro há um botão flutuante de chat com ícone de <strong>balão de mensagem</strong>.
+                Ao clicar, abre-se o painel de <strong>IA Financeira</strong>.
+              </li>
+              <li>
+                Sempre que o painel é aberto, ele consulta o <strong>dashboard financeiro</strong> para montar um contexto (saldo atual,
+                entradas e saídas do mês, período), que é enviado para a IA junto com a sua pergunta.
+              </li>
+              <li>
+                Basta digitar uma pergunta (por exemplo: <em>&quot;Como está o saldo?&quot;</em> ou <em>&quot;Quais categorias mais gastaram neste mês?&quot;</em>) e clicar em
+                <strong> Enviar</strong>. A resposta é exibida logo abaixo, ou uma mensagem de erro se algo der errado.
+              </li>
+              <li>
+                O chat é apenas de consulta; nenhuma ação de cadastro/edição é feita pela IA — ele serve como apoio analítico.
+              </li>
+            </ul>
+          </Step>
+        </Section>
+
         <Section id="responder" title="Responder a um formulário" icon={Send}>
           <p className="mb-lg text-body text-[var(--text-secondary)]">
             Qualquer pessoa com o link pode responder a um formulário, desde que ele esteja com status <strong>Ativo</strong>.
@@ -290,6 +533,10 @@ export default function TutorialPage() {
               Novas alterações: adicione no topo da lista (data e descrição).
             </p>
             <ul className="space-y-2 text-small text-[var(--text-secondary)]">
+              <li className="flex flex-wrap gap-2">
+                <span className="font-mono text-caption text-[var(--text-secondary)]">[Data]</span>
+                <span>Adição do módulo financeiro ao tutorial: acesso como admin/visitante, caixas, categorias, formas de pagamento, movimentações, contas a pagar/receber, relatórios, auditoria e chat de IA Financeira.</span>
+              </li>
               <li className="flex flex-wrap gap-2">
                 <span className="font-mono text-caption text-[var(--text-secondary)]">[Data]</span>
                 <span>Publicação do tutorial inicial: concepção, login, formulários, respostas, dashboards, responder, créditos e histórico.</span>

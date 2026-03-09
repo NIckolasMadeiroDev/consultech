@@ -9,6 +9,11 @@
     --border: #e5e7eb;
     --text-primary: #111827;
     --text-secondary: #6b7280;
+    /* Financeiro */
+    --finance-entry: #16A34A;
+    --finance-exit: #DC2626;
+    --finance-neutral: #64748B;
+    --finance-warning: #F59E0B;
   }
 
   .dark {
@@ -17,6 +22,10 @@
     --border: #334155;
     --text-primary: #f1f5f9;
     --text-secondary: #94a3b8;
+    --finance-entry: #22C55E;
+    --finance-exit: #EF4444;
+    --finance-neutral: #94a3b8;
+    --finance-warning: #F59E0B;
   }
 
   html {

@@ -1,4 +1,5 @@
 import { ZodError } from "zod";
+import { Prisma } from "@prisma/client";
 
 export async function apiHandler<T>(
   fn: () => Promise<T>
@@ -7,9 +8,18 @@ export async function apiHandler<T>(
     const data = await fn();
     return Response.json(data, { status: 200 });
   } catch (error) {
+    // Log no servidor para facilitar debug (erro aparece no terminal do Next.js)
+    console.error("[apiHandler]", error);
     if (error instanceof ZodError) {
       const message = error.errors.map((e) => e.message).join("; ");
       return Response.json({ error: message }, { status: 400 });
+    }
+    // Tabela ou relação não existe no banco (ex.: após adicionar modelos sem rodar db push)
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+      return Response.json(
+        { error: "Schema do banco desatualizado. Execute: npx prisma db push" },
+        { status: 503 }
+      );
     }
     const message = error instanceof Error ? error.message : "Internal error";
     let status = 500;

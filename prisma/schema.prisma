@@ -104,3 +104,110 @@ model AuditLog {
   metadata   Json?
   createdAt  DateTime @default(now()) @map("created_at")
 }
+
+// ========== Módulo Financeiro (isolado do restante do sistema) ==========
+
+model FinanceCashbox {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  balance     Decimal  @default(0) @db.Decimal(15, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  transactionsOut Transaction[] @relation("CashboxOrigin")
+  transactionsIn  Transaction[] @relation("CashboxDestination")
+  payables    FinancePayable[]
+  receivables FinanceReceivable[]
+
+  @@map("finance_cashbox")
+}
+
+model FinanceCategory {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  type       String   // "entry" | "exit"
+  parentId   String?  @map("parent_id") @db.Uuid
+  parent     FinanceCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children   FinanceCategory[] @relation("CategoryHierarchy")
+  transactions Transaction[]
+  payables   FinancePayable[]
+  receivables FinanceReceivable[]
+
+  @@map("finance_category")
+}
+
+model FinancePaymentMethod {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+  transactions Transaction[]
+  payables   FinancePayable[]
+  receivables FinanceReceivable[]
+
+  @@map("finance_payment_method")
+}
+
+model Transaction {
+  id              String   @id @default(uuid()) @db.Uuid
+  type            String   // "entry" | "exit" | "transfer" | "withdraw" | "supply"
+  amount          Decimal  @db.Decimal(15, 2)
+  description     String?
+  categoryId      String?  @map("category_id") @db.Uuid
+  category        FinanceCategory? @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?  @map("payment_method_id") @db.Uuid
+  paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  cashboxOriginId String?  @map("cashbox_origin_id") @db.Uuid
+  cashboxOrigin   FinanceCashbox? @relation("CashboxOrigin", fields: [cashboxOriginId], references: [id])
+  cashboxDestId   String?  @map("cashbox_dest_id") @db.Uuid
+  cashboxDest     FinanceCashbox? @relation("CashboxDestination", fields: [cashboxDestId], references: [id])
+  userId          String?  @map("user_id")
+  movementAt      DateTime @default(now()) @map("movement_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  payablesPaid    FinancePayable[]  @relation("PayableTransaction")
+  receivablesPaid FinanceReceivable[] @relation("ReceivableTransaction")
+
+  @@map("transaction")
+}
+
+model FinancePayable {
+  id              String    @id @default(uuid()) @db.Uuid
+  description     String
+  amount          Decimal   @db.Decimal(15, 2)
+  dueDate         DateTime  @map("due_date") @db.Date
+  status          String    @default("pending") // pending | paid | cancelled
+  paidAt          DateTime? @map("paid_at")
+  transactionId   String?   @map("transaction_id") @db.Uuid
+  transaction     Transaction? @relation("PayableTransaction", fields: [transactionId], references: [id])
+  cashboxId       String?   @map("cashbox_id") @db.Uuid
+  cashbox         FinanceCashbox? @relation(fields: [cashboxId], references: [id])
+  categoryId      String?   @map("category_id") @db.Uuid
+  category        FinanceCategory? @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?   @map("payment_method_id") @db.Uuid
+  paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("finance_payable")
+}
+
+model FinanceReceivable {
+  id              String    @id @default(uuid()) @db.Uuid
+  description     String
+  amount          Decimal   @db.Decimal(15, 2)
+  dueDate         DateTime  @map("due_date") @db.Date
+  status          String    @default("pending") // pending | received | cancelled
+  receivedAt      DateTime? @map("received_at")
+  transactionId   String?   @map("transaction_id") @db.Uuid
+  transaction     Transaction? @relation("ReceivableTransaction", fields: [transactionId], references: [id])
+  cashboxId       String?   @map("cashbox_id") @db.Uuid
+  cashbox         FinanceCashbox? @relation(fields: [cashboxId], references: [id])
+  categoryId      String?   @map("category_id") @db.Uuid
+  category        FinanceCategory? @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?   @map("payment_method_id") @db.Uuid
+  paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("finance_receivable")
+}

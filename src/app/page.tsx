@@ -1,18 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { LayoutDashboard, ClipboardList, FileEdit, DollarSign, BookOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/layout";
 import { Card } from "@/components/ui/card";
-import { Modal } from "@/components/ui/modal";
-import { Button } from "@/components/ui/button";
-
-type DevModalType = "financeiro" | null;
 
 export default function Home() {
-  const [devModal, setDevModal] = useState<DevModalType>(null);
-
   return (
     <main className="min-h-screen bg-[var(--background)]">
       {/* Header com tema */}
@@ -20,23 +13,6 @@ export default function Home() {
         <ThemeToggle />
       </header>
 
-      {/* Modal "Em desenvolvimento" — só monta quando aberto */}
-      {devModal !== null && (
-        <Modal
-          open={true}
-          onClose={() => setDevModal(null)}
-          title="Financeiro"
-          footer={
-            <Button variant="primary" size="md" onClick={() => setDevModal(null)}>
-              Fechar
-            </Button>
-          }
-        >
-          <p className="text-body text-[var(--text-secondary)]">
-            Esta funcionalidade ainda está em desenvolvimento. Em breve você poderá utilizá-la.
-          </p>
-        </Modal>
-      )}
       {/* Conteúdo central — mobile first */}
       <div className="mx-auto flex min-h-screen max-w-content flex-col justify-center px-4 py-12 sm:px-6 sm:py-16 md:px-8 md:py-20">
         <div className="w-full space-y-8 sm:space-y-10">
@@ -121,13 +97,10 @@ export default function Home() {
               </Card>
             </Link>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setDevModal("financeiro");
-              }}
-              className="block w-full text-left transition-transform duration-150 ease-out hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-[var(--background)] rounded-xl"
+            <Link
+              href="/finance"
+              className="block transition-transform duration-150 ease-out hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-[var(--background)] rounded-xl"
+              aria-label="Acessar módulo financeiro"
             >
               <Card
                 padding="lg"
@@ -148,7 +121,7 @@ export default function Home() {
                   </span>
                 </div>
               </Card>
-            </button>
+            </Link>
 
             <Link
               href="/tutorial"
