@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface ModalProps {
   readonly open: boolean;
@@ -11,6 +12,8 @@ export interface ModalProps {
   readonly children: ReactNode;
   readonly footer?: ReactNode;
   readonly closeOnOverlayClick?: boolean;
+  readonly panelClassName?: string;
+  readonly bodyClassName?: string;
 }
 
 export function Modal({
@@ -20,6 +23,8 @@ export function Modal({
   children,
   footer,
   closeOnOverlayClick = true,
+  panelClassName,
+  bodyClassName,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose);
@@ -50,7 +55,12 @@ export function Modal({
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
-      <div className="relative z-10 w-full max-w-lg rounded-xl border border-neutral-200 bg-[var(--background)] shadow-lg dark:border-neutral-700">
+      <div
+        className={cn(
+          "relative z-10 w-full rounded-xl border border-neutral-200 bg-[var(--background)] shadow-lg dark:border-neutral-700",
+          panelClassName ?? "max-w-lg"
+        )}
+      >
         {(title || closeOnOverlayClick) && (
           <div className="flex items-center justify-between border-b border-neutral-200 p-lg dark:border-neutral-700">
             {title && (
@@ -70,7 +80,7 @@ export function Modal({
             </div>
           </div>
         )}
-        <div className="p-lg">{children}</div>
+        <div className={cn("p-lg", bodyClassName)}>{children}</div>
         {footer && (
           <div className="flex justify-end gap-2 border-t border-neutral-200 p-lg dark:border-neutral-700">
             {footer}

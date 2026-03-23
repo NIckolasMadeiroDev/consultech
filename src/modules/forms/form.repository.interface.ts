@@ -4,9 +4,13 @@ import type { UpdateFormInput } from "./form.schema";
 export interface CreateFormData {
   title: string;
   description?: string;
+  closingMessage?: string;
+  folderId?: string;
+  isTemplate?: boolean;
   createdBy: string;
   slug?: string;
   allowAnonymous?: boolean;
+  status?: "draft" | "active";
 }
 
 export interface IFormRepository {

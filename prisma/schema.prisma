@@ -8,27 +8,44 @@ datasource db {
 }
 
 model Admin {
-  id           String   @id @default(uuid()) @db.Uuid
+  id           String       @id @default(uuid()) @db.Uuid
   name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  createdAt    DateTime @default(now()) @map("created_at")
+  email        String       @unique
+  passwordHash String       @map("password_hash")
+  createdAt    DateTime     @default(now()) @map("created_at")
   forms        Form[]
   dashboards   Dashboard[]
+  formFolders  FormFolder[]
+}
+
+model FormFolder {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  createdBy String?  @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  admin     Admin?   @relation(fields: [createdBy], references: [id])
+  forms     Form[]
+
+  @@unique([createdBy, name])
+  @@map("form_folder")
 }
 
 model Form {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String      @id @default(uuid()) @db.Uuid
   title          String
   description    String?
-  status         String   @default("draft")
-  version        Int      @default(1)
-  slug           String?  @unique
-  allowAnonymous Boolean  @default(false) @map("allow_anonymous")
-  createdBy      String?  @map("created_by") @db.Uuid
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-  admin          Admin?   @relation(fields: [createdBy], references: [id])
+  closingMessage String?     @map("closing_message")
+  folderId       String?     @map("folder_id") @db.Uuid
+  isTemplate     Boolean     @default(false) @map("is_template")
+  status         String      @default("draft")
+  version        Int         @default(1)
+  slug           String?     @unique
+  allowAnonymous Boolean     @default(false) @map("allow_anonymous")
+  createdBy      String?     @map("created_by") @db.Uuid
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  admin          Admin?      @relation(fields: [createdBy], references: [id])
+  folderRef      FormFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   questions      Question[]
   responses      Response[]
 }

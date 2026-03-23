@@ -6,6 +6,10 @@ export function formDTO(form: Form) {
     id: form.id,
     title: form.title,
     description: form.description,
+    closingMessage: form.closingMessage,
+    folderId: form.folderId,
+    folder: form.folder,
+    isTemplate: form.isTemplate ?? false,
     status: form.status,
     version: form.version,
     slug: form.slug,
@@ -46,6 +50,9 @@ export function formListDTO(form: Form) {
     title: form.title,
     status: form.status,
     slug: form.slug,
+    folderId: form.folderId,
+    folder: form.folder,
+    isTemplate: form.isTemplate ?? false,
     createdAt: form.createdAt,
   };
 }

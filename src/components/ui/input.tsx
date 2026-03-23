@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, type InputHTMLAttributes } from "react";
+import { forwardRef, useId, type InputHTMLAttributes } from "react";
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   readonly label?: string;
@@ -25,7 +25,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
-    const id = idProp ?? `input-${Math.random().toString(36).slice(2, 9)}`;
+    const autoId = useId();
+    const id = idProp ?? autoId;
     const hasError = Boolean(error);
     let ariaDescribedBy: string | undefined;
     if (error) ariaDescribedBy = `${id}-error`;

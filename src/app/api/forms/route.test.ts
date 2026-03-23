@@ -152,4 +152,30 @@ describe("POST /api/forms", () => {
       ])
     );
   });
+
+  it("repassa initialStatus active ao criar formulário", async () => {
+    const createSpy = vi.fn().mockResolvedValue({
+      id: "f-act",
+      title: "F",
+      status: "active",
+      version: 1,
+      createdBy: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    vi.mocked(getFormRepository).mockReturnValue({ create: createSpy } as never);
+    vi.mocked(getQuestionRepository).mockReturnValue({ createMany: vi.fn().mockResolvedValue([]) } as never);
+    const req = new Request("http://localhost/api/forms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Form Ativo",
+        initialStatus: "active",
+        questions: [{ type: "short_text", text: "P1", required: false, orderIndex: 0 }],
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "active" }));
+  });
 });

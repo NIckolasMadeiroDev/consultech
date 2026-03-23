@@ -22,16 +22,26 @@ describe("createForm", () => {
     expect(repo.create).not.toHaveBeenCalled();
   });
 
-  it("deve lançar erro quando não há perguntas", async () => {
-    const repo = {
-      create: vi.fn(),
-    };
+  it("deve lançar erro quando não há perguntas respondíveis", async () => {
+    const repo = { create: vi.fn() };
     await expect(
       createForm(
         {
           title: "Form 1",
           description: "Desc",
           questions: [],
+        },
+        "admin-1",
+        repo as never
+      )
+    ).rejects.toThrow("At least one question required");
+    expect(repo.create).not.toHaveBeenCalled();
+    await expect(
+      createForm(
+        {
+          title: "Form 1",
+          description: "Desc",
+          questions: [{ type: "section", text: "A", required: false, orderIndex: 0 }],
         },
         "admin-1",
         repo as never
@@ -82,9 +92,13 @@ describe("createForm", () => {
     expect(formRepo.create).toHaveBeenCalledWith({
       title: "Form 1",
       description: "Desc",
+      closingMessage: undefined,
+      folderId: undefined,
+      isTemplate: false,
       createdBy: "admin-1",
       slug: undefined,
       allowAnonymous: false,
+      status: "draft",
     });
     expect(questionRepo.createMany).toHaveBeenCalled();
   });

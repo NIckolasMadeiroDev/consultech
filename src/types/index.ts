@@ -4,11 +4,13 @@ export type QuestionType =
   | "short_text"
   | "long_text"
   | "multiple_choice"
+  | "dropdown"
   | "checkbox"
   | "scale"
   | "yes_no"
   | "date"
-  | "number";
+  | "number"
+  | "section";
 
 export type LinkStatus = "active" | "paused" | "expired";
 

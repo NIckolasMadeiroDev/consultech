@@ -13,6 +13,28 @@ function getHeaders(userId?: string): HeadersInit {
   return headers;
 }
 
+export async function fetchFormFolders(userId?: string) {
+  const res = await fetch(`${getBaseUrl()}/api/form-folders`, { headers: getHeaders(userId) });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch folders");
+  }
+  return res.json() as Promise<Array<{ id: string; name: string; createdBy: string | null; createdAt: string }>>;
+}
+
+export async function createFormFolder(name: string, userId?: string) {
+  const res = await fetch(`${getBaseUrl()}/api/form-folders`, {
+    method: "POST",
+    headers: getHeaders(userId),
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to create folder");
+  }
+  return res.json() as Promise<{ id: string; name: string }>;
+}
+
 export async function fetchForms(createdBy?: string, userId?: string) {
   const url = new URL(`${getBaseUrl()}/api/forms`);
   if (createdBy) url.searchParams.set("createdBy", createdBy);
@@ -47,7 +69,17 @@ export async function fetchFormBySlug(slug: string) {
 }
 
 export async function createForm(
-  data: { title: string; description?: string; slug?: string; allowAnonymous?: boolean; questions: Array<Record<string, unknown>> },
+  data: {
+    title: string;
+    description?: string;
+    closingMessage?: string;
+    folderId?: string | null;
+    isTemplate?: boolean;
+    slug?: string;
+    allowAnonymous?: boolean;
+    initialStatus?: "draft" | "active";
+    questions: Array<Record<string, unknown>>;
+  },
   userId?: string
 ) {
   const res = await fetch(`${getBaseUrl()}/api/forms`, {
@@ -64,7 +96,17 @@ export async function createForm(
 
 export async function updateForm(
   id: string,
-  data: { title?: string; description?: string; status?: string; slug?: string | null; allowAnonymous?: boolean; questions?: Array<Record<string, unknown>> },
+  data: {
+    title?: string;
+    description?: string;
+    closingMessage?: string | null;
+    folderId?: string | null;
+    isTemplate?: boolean;
+    status?: string;
+    slug?: string | null;
+    allowAnonymous?: boolean;
+    questions?: Array<Record<string, unknown>>;
+  },
   userId?: string
 ) {
   const res = await fetch(`${getBaseUrl()}/api/forms/${id}`, {

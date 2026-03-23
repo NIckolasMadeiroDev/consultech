@@ -3,23 +3,30 @@
 import { useState, useEffect, useCallback } from "react";
 import * as api from "@/lib/api";
 
-export function useForm(id: string | null) {
-  const [data, setData] = useState<{
+export type FormDetail = {
+  id: string;
+  title: string;
+  description?: string;
+  closingMessage?: string;
+    folderId?: string;
+    folder?: string;
+  isTemplate?: boolean;
+  allowAnonymous?: boolean;
+  status: string;
+  questions: Array<{
     id: string;
-    title: string;
-    description?: string;
-    status: string;
-    questions: Array<{
-      id: string;
-      type: string;
-      text: string;
-      required: boolean;
-      orderIndex: number;
-      options?: string[];
-      scaleMin?: number;
-      scaleMax?: number;
-    }>;
-  } | null>(null);
+    type: string;
+    text: string;
+    required: boolean;
+    orderIndex: number;
+    options?: string[];
+    scaleMin?: number;
+    scaleMax?: number;
+  }>;
+};
+
+export function useForm(id: string | null) {
+  const [data, setData] = useState<FormDetail | null>(null);
   const [loading, setLoading] = useState(!!id);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +39,7 @@ export function useForm(id: string | null) {
     setLoading(true);
     setError(null);
     try {
-      const form = await api.fetchForm(id);
+      const form = (await api.fetchForm(id)) as FormDetail;
       setData(form);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");

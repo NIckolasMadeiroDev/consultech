@@ -31,6 +31,8 @@ export async function apiHandler<T>(
       status = 404;
     } else if (message === "XAI_API_KEY not configured") {
       status = 503;
+    } else if (message === "Já existe uma pasta com esse nome") {
+      status = 409;
     }
     return Response.json({ error: message }, { status });
   }

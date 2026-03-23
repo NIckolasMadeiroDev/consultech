@@ -11,15 +11,19 @@ export async function createForm(
   if (!data.title || data.title.trim().length === 0) {
     throw new Error("Title required");
   }
-  if (!data.questions || data.questions.length === 0) {
+  if (!data.questions.some((q) => q.type !== "section")) {
     throw new Error("At least one question required");
   }
   const form = await formRepository.create({
     title: data.title.trim(),
     description: data.description,
+    closingMessage: data.closingMessage?.trim() || undefined,
+    folderId: data.folderId ?? undefined,
+    isTemplate: data.isTemplate ?? false,
     createdBy,
     slug: data.slug?.trim() || undefined,
     allowAnonymous: data.allowAnonymous ?? false,
+    status: data.initialStatus ?? "draft",
   });
   if (questionRepository && data.questions.length > 0) {
     await questionRepository.createMany(

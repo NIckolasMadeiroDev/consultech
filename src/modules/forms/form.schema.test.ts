@@ -100,6 +100,23 @@ describe("createFormSchema", () => {
     expect(result.questions[0].options).toEqual(["Item 1", "Item 2"]);
   });
 
+  it("aceita dropdown com options", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      questions: [
+        {
+          type: "dropdown",
+          text: "Escolha",
+          required: true,
+          orderIndex: 0,
+          options: ["A", "B"],
+        },
+      ],
+    });
+    expect(result.questions[0].type).toBe("dropdown");
+    expect(result.questions[0].options).toEqual(["A", "B"]);
+  });
+
   it("aceita slug e allowAnonymous no create", () => {
     const result = createFormSchema.parse({
       title: "Form",
@@ -109,5 +126,52 @@ describe("createFormSchema", () => {
     });
     expect(result.slug).toBe("pesquisa-2025");
     expect(result.allowAnonymous).toBe(true);
+  });
+
+  it("aceita seção junto com pergunta respondível", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      questions: [
+        { type: "section", text: "Bloco A", required: false, orderIndex: 0 },
+        { type: "short_text", text: "Nome?", required: true, orderIndex: 1 },
+      ],
+    });
+    expect(result.questions[0].type).toBe("section");
+    expect(result.questions[1].type).toBe("short_text");
+  });
+
+  it("rejeita apenas seções sem pergunta", () => {
+    expect(() =>
+      createFormSchema.parse({
+        title: "Form",
+        questions: [{ type: "section", text: "Só seção", required: false, orderIndex: 0 }],
+      })
+    ).toThrow();
+  });
+
+  it("aceita closingMessage opcional", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      closingMessage: "Valeu!",
+      questions: [{ type: "short_text", text: "P1", required: false, orderIndex: 0 }],
+    });
+    expect(result.closingMessage).toBe("Valeu!");
+  });
+
+  it("default initialStatus é draft", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      questions: [{ type: "short_text", text: "P1", required: false, orderIndex: 0 }],
+    });
+    expect(result.initialStatus).toBe("draft");
+  });
+
+  it("aceita initialStatus active", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      initialStatus: "active",
+      questions: [{ type: "short_text", text: "P1", required: false, orderIndex: 0 }],
+    });
+    expect(result.initialStatus).toBe("active");
   });
 });

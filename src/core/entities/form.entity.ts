@@ -4,6 +4,10 @@ export interface Form {
   id: string;
   title: string;
   description?: string;
+  closingMessage?: string;
+  folderId?: string;
+  folder?: string;
+  isTemplate?: boolean;
   status: FormStatus;
   version: number;
   slug?: string;

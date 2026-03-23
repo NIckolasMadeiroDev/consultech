@@ -4,7 +4,18 @@ import { useState, useEffect, useCallback } from "react";
 import * as api from "@/lib/api";
 
 export function useForms(userId?: string) {
-  const [data, setData] = useState<Array<{ id: string; title: string; status: string; createdAt: string }> | null>(null);
+  const [data, setData] = useState<
+    Array<{
+      id: string;
+      title: string;
+      status: string;
+      slug?: string;
+      folderId?: string;
+      folder?: string;
+      isTemplate?: boolean;
+      createdAt: string;
+    }> | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

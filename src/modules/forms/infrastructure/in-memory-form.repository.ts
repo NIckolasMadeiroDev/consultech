@@ -2,18 +2,29 @@ import { randomUUID } from "node:crypto";
 import type { Form } from "@/core/entities";
 import type { CreateFormData, IFormRepository } from "../form.repository.interface";
 import type { UpdateFormInput } from "../form.schema";
+import { getInMemoryFolderDisplayName } from "@/modules/folders/infrastructure/in-memory-folder.repository";
 
 const store: Map<string, Form> = new Map();
 const slugIndex: Map<string, string> = new Map();
 
+function resolveFolderFields(folderId?: string): Pick<Form, "folderId" | "folder"> {
+  if (!folderId) return {};
+  const name = getInMemoryFolderDisplayName(folderId);
+  return { folderId, folder: name };
+}
+
 export class InMemoryFormRepository implements IFormRepository {
   async create(data: CreateFormData): Promise<Form> {
     const now = new Date();
+    const folderFields = resolveFolderFields(data.folderId);
     const form: Form = {
       id: randomUUID(),
       title: data.title,
       description: data.description,
-      status: "draft",
+      closingMessage: data.closingMessage,
+      ...folderFields,
+      isTemplate: data.isTemplate ?? false,
+      status: data.status ?? "draft",
       version: 1,
       slug: data.slug,
       allowAnonymous: data.allowAnonymous ?? false,
@@ -31,8 +42,8 @@ export class InMemoryFormRepository implements IFormRepository {
   }
 
   async findBySlug(slug: string): Promise<Form | null> {
-    const id = slugIndex.get(slug);
-    return id ? store.get(id) ?? null : null;
+    const fid = slugIndex.get(slug);
+    return fid ? store.get(fid) ?? null : null;
   }
 
   async findByCreatedBy(createdBy: string): Promise<Form[]> {
@@ -44,9 +55,22 @@ export class InMemoryFormRepository implements IFormRepository {
     if (!existing) return null;
     if (existing.slug) slugIndex.delete(existing.slug);
     const slug = data.slug === undefined ? existing.slug : (data.slug ?? undefined);
+    const { questions: _omitQuestions, closingMessage, folderId, isTemplate, ...restData } = data;
+    void _omitQuestions;
+    let folderFields: Pick<Form, "folderId" | "folder"> = {};
+    if (folderId !== undefined) {
+      folderFields =
+        folderId === null ? { folderId: undefined, folder: undefined } : resolveFolderFields(folderId);
+    } else {
+      folderFields = { folderId: existing.folderId, folder: existing.folder };
+    }
     const updated: Form = {
       ...existing,
-      ...data,
+      ...restData,
+      ...folderFields,
+      closingMessage:
+        closingMessage === undefined ? existing.closingMessage : (closingMessage ?? undefined),
+      isTemplate: isTemplate === undefined ? existing.isTemplate : isTemplate,
       slug,
       updatedAt: new Date(),
     };
@@ -65,10 +89,14 @@ export class InMemoryFormRepository implements IFormRepository {
     const existing = store.get(id);
     if (!existing) return null;
     const now = new Date();
+    const folderFields = resolveFolderFields(existing.folderId);
     const newForm: Form = {
       id: randomUUID(),
       title: `${existing.title} (cópia)`,
       description: existing.description,
+      closingMessage: existing.closingMessage,
+      ...folderFields,
+      isTemplate: false,
       status: "draft",
       version: 1,
       slug: undefined,

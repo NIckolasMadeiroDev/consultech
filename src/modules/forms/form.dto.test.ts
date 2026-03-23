@@ -29,9 +29,11 @@ describe("form.dto", () => {
     expect(dto.updatedAt).toEqual(form.updatedAt);
   });
 
-  it("formListDTO retorna id, title, status, slug, createdAt", () => {
+  it("formListDTO retorna id, title, status, slug, folder, folderId, isTemplate, createdAt", () => {
     const dto = formListDTO(form);
-    expect(Object.keys(dto)).toEqual(["id", "title", "status", "slug", "createdAt"]);
+    expect(Object.keys(dto).sort()).toEqual(
+      ["createdAt", "folder", "folderId", "id", "isTemplate", "slug", "status", "title"].sort()
+    );
     expect(dto.id).toBe("f1");
     expect(dto.title).toBe("Form 1");
     expect(dto.status).toBe("draft");
