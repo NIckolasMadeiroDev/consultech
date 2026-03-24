@@ -43,6 +43,8 @@ export async function apiHandler<T>(
       status = 503;
     } else if (message === "Unauthorized") {
       status = 401;
+    } else if (message === "Nenhuma resposta para analisar") {
+      status = 400;
     } else if (message === "Já existe uma pasta com esse nome") {
       status = 409;
     }

@@ -150,6 +150,31 @@ export class PrismaResponseRepository implements IResponseRepository {
     return { count, lastSubmittedAt: last?.submittedAt ?? null };
   }
 
+  async findRecentByFormIdWithAnswers(
+    formId: string,
+    filters: ResponseFilters | undefined,
+    limit: number
+  ): Promise<Array<{ submittedAt: Date; answers: Array<{ questionId: string; value: unknown }> }>> {
+    const where = await this.resolveWhere(formId, filters);
+    const take = Math.min(500, Math.max(1, limit));
+    const rows = await this.prisma.response.findMany({
+      where,
+      orderBy: { submittedAt: "desc" },
+      take,
+      select: {
+        submittedAt: true,
+        answers: { select: { questionId: true, value: true } },
+      },
+    });
+    return rows.map((r) => ({
+      submittedAt: r.submittedAt,
+      answers: r.answers.map((a) => ({
+        questionId: a.questionId,
+        value: a.value as unknown,
+      })),
+    }));
+  }
+
   async delete(id: string): Promise<boolean> {
     try {
       await this.prisma.response.delete({ where: { id } });

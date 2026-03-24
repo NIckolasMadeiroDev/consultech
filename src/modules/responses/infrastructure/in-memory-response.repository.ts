@@ -72,6 +72,25 @@ export class InMemoryResponseRepository implements IResponseRepository {
     );
   }
 
+  async findRecentByFormIdWithAnswers(
+    formId: string,
+    filters: ResponseFilters | undefined,
+    limit: number
+  ): Promise<Array<{ submittedAt: Date; answers: Array<{ questionId: string; value: unknown }> }>> {
+    const list = await this.findByFormId(formId, filters);
+    const take = Math.min(500, Math.max(1, limit));
+    const slice = list.slice(0, take);
+    const out: Array<{ submittedAt: Date; answers: Array<{ questionId: string; value: unknown }> }> = [];
+    for (const r of slice) {
+      const answers = await this.getAnswersByResponseId(r.id);
+      out.push({
+        submittedAt: r.submittedAt,
+        answers: answers.map((a) => ({ questionId: a.questionId, value: a.value })),
+      });
+    }
+    return out;
+  }
+
   async getSummaryByFormId(
     formId: string,
     filters?: ResponseFilters

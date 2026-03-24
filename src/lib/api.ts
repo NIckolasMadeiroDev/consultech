@@ -252,6 +252,36 @@ export async function downloadFormResponsesExport(
   URL.revokeObjectURL(objectUrl);
 }
 
+export type FormResponsesInsightsMeta = {
+  mode: string;
+  totalMatchingResponses: number;
+  sampleSize: number;
+  sampleIsPartial: boolean;
+};
+
+export async function requestFormResponsesInsights(
+  formId: string,
+  body: {
+    mode: "summary" | "insights";
+    startDate?: string;
+    endDate?: string;
+    respondentSearch?: string;
+    answerSearch?: string;
+  },
+  userId?: string
+): Promise<{ content: string; meta: FormResponsesInsightsMeta }> {
+  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/responses/insights`, {
+    method: "POST",
+    headers: getHeaders(userId),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha ao gerar análise");
+  }
+  return res.json();
+}
+
 export async function fetchDashboards(createdBy?: string, userId?: string) {
   const url = new URL(`${getBaseUrl()}/api/dashboards`);
   if (createdBy) url.searchParams.set("createdBy", createdBy);

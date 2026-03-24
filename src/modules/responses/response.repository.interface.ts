@@ -20,5 +20,10 @@ export interface IResponseRepository {
     formId: string,
     filters?: ResponseFilters
   ): Promise<{ count: number; lastSubmittedAt: Date | null }>;
+  findRecentByFormIdWithAnswers(
+    formId: string,
+    filters: ResponseFilters | undefined,
+    limit: number
+  ): Promise<Array<{ submittedAt: Date; answers: Array<{ questionId: string; value: unknown }> }>>;
   delete(id: string): Promise<boolean>;
 }
