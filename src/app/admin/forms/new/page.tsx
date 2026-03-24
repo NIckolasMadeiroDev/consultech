@@ -20,6 +20,7 @@ import {
   Check,
   GripVertical,
   FolderPlus,
+  Sparkles,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import {
@@ -159,6 +160,8 @@ export default function NewFormPage() {
   const [optionDrag, setOptionDrag] = useState<{ qIndex: number; oIndex: number } | null>(null);
   const [optionDragOver, setOptionDragOver] = useState<{ qIndex: number; oIndex: number } | null>(null);
   const nextQuestionKeyRef = useRef(1);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     void api.fetchFormFolders(userId).then(setFolders).catch(() => setFolders([]));
@@ -310,6 +313,49 @@ export default function NewFormPage() {
         return { ...item, options: opts };
       })
     );
+  };
+
+  const handleGenerateDraft = async () => {
+    const p = aiPrompt.trim();
+    if (p.length < 12 || aiLoading) return;
+    setError(null);
+    setAiLoading(true);
+    try {
+      const draft = await api.generateFormDraft(p, userId);
+      setTitle(draft.title);
+      setDescription(draft.description ?? "");
+      setClosingMessage(draft.closingMessage ?? "");
+      let k = nextQuestionKeyRef.current;
+      const rows: QuestionRow[] = draft.questions.map((q, idx) => {
+        const row: QuestionRow = {
+          type: q.type as QuestionRow["type"],
+          text: q.text,
+          required: q.required,
+          orderIndex: idx,
+          _localId: k,
+        };
+        k += 1;
+        if (q.type === "multiple_choice" || q.type === "dropdown" || q.type === "checkbox") {
+          row.options = [...(q.options ?? [])];
+        }
+        if (q.type === "scale") {
+          row.scaleMin = q.scaleMin ?? DEFAULT_SCALE_MIN;
+          row.scaleMax = q.scaleMax ?? DEFAULT_SCALE_MAX;
+        }
+        return row;
+      });
+      nextQuestionKeyRef.current = k;
+      setQuestions(rows.length > 0 ? rows : questions);
+      setTouched((t) => ({ ...t, title: true }));
+      setStep(2);
+      toast("Rascunho gerado. Revise as perguntas antes de publicar.", "success");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao gerar com IA";
+      setError(msg);
+      toast(msg, "error");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const validate = useMemo((): ValidationErrors => {
@@ -526,6 +572,33 @@ export default function NewFormPage() {
                   placeholder="Opcional"
                   className="w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
                 />
+              </div>
+              <div className="rounded-xl border border-primary-200 bg-primary-50/60 p-md dark:border-primary-900/50 dark:bg-primary-950/25">
+                <div className="mb-2 flex items-center gap-2 text-small font-semibold text-[var(--text-primary)]">
+                  <Sparkles className="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" aria-hidden />
+                  Gerar rascunho com IA
+                </div>
+                <p className="mb-2 text-caption text-[var(--text-secondary)]">
+                  Descreva objetivo, público e dados que deseja coletar. A IA preenche título, descrição, mensagem final (se fizer sentido) e a lista de perguntas; você pode editar tudo antes de criar o formulário.
+                </p>
+                <textarea
+                  id="new-ai-prompt"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  rows={4}
+                  placeholder="Ex.: Formulário de onboarding de novos colaboradores: dados pessoais, cargo, data de início, necessidades de equipamento e aceite do regulamento interno."
+                  disabled={aiLoading}
+                  className="mb-3 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-60 dark:border-neutral-600"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleGenerateDraft()}
+                  disabled={aiLoading || aiPrompt.trim().length < 12}
+                  leftIcon={<Sparkles className="h-4 w-4" />}
+                >
+                  {aiLoading ? "Gerando…" : "Gerar rascunho e ir para perguntas"}
+                </Button>
               </div>
               <div>
                 <label

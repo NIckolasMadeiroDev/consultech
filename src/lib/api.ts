@@ -440,3 +440,33 @@ export async function chatCompletion(data: {
   }
   return res.json();
 }
+
+export type GenerateFormDraftResult = {
+  title: string;
+  description?: string;
+  closingMessage?: string;
+  questions: Array<{
+    type: string;
+    text: string;
+    required: boolean;
+    options?: string[];
+    scaleMin?: number;
+    scaleMax?: number;
+  }>;
+};
+
+export async function generateFormDraft(
+  prompt: string,
+  userId?: string
+): Promise<GenerateFormDraftResult> {
+  const res = await fetch(`${getBaseUrl()}/api/ai/generate-form`, {
+    method: "POST",
+    headers: getHeaders(userId),
+    body: JSON.stringify({ prompt }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha ao gerar rascunho");
+  }
+  return res.json();
+}
