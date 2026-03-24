@@ -18,6 +18,8 @@ function parseFilters(url: URL): { startDate?: Date; endDate?: Date } | undefine
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   context: { params: { id: string } }

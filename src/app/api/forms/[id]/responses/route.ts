@@ -22,6 +22,8 @@ function parseFilters(url: URL): ResponseFilters | undefined {
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   context: { params: { id: string } }

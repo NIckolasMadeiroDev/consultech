@@ -11,6 +11,8 @@ const FINANCE_ENTITY_TYPES = [
   "finance_receivable",
 ];
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   return apiHandler(async () => {
     const url = new URL(req.url);

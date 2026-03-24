@@ -11,6 +11,8 @@ import {
 } from "@/infrastructure/database/repositories";
 import { getCreatedBy, getSession } from "@/lib/auth-session";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   return apiHandler(async () => {
     const url = new URL(req.url);

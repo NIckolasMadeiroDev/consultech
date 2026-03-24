@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { getAuditLogRepository } from "@/infrastructure/database/repositories";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   return apiHandler(async () => {
     const url = new URL(req.url);

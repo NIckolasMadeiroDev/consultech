@@ -29,6 +29,8 @@ function answerToCell(value: unknown): string {
   return JSON.stringify(value);
 }
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: NextRequest,
   context: { params: { id: string } }
