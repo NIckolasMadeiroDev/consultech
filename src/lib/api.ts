@@ -470,3 +470,53 @@ export async function generateFormDraft(
   }
   return res.json();
 }
+
+export type RefineFormCurrentSnapshot = {
+  title: string;
+  description?: string;
+  closingMessage?: string;
+  pausedMessage?: string;
+  responseCount?: number;
+  questions: Array<{
+    id?: string;
+    type: string;
+    text: string;
+    required: boolean;
+    options?: string[];
+    scaleMin?: number;
+    scaleMax?: number;
+  }>;
+};
+
+export type RefineFormDraftResult = {
+  title: string;
+  description?: string;
+  closingMessage?: string;
+  pausedMessage?: string;
+  questions: Array<{
+    id?: string;
+    type: string;
+    text: string;
+    required: boolean;
+    options?: string[];
+    scaleMin?: number;
+    scaleMax?: number;
+  }>;
+};
+
+export async function refineFormDraft(
+  prompt: string,
+  current: RefineFormCurrentSnapshot,
+  userId?: string
+): Promise<RefineFormDraftResult> {
+  const res = await fetch(`${getBaseUrl()}/api/ai/refine-form`, {
+    method: "POST",
+    headers: getHeaders(userId),
+    body: JSON.stringify({ prompt, current }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha ao refinar com IA");
+  }
+  return res.json();
+}

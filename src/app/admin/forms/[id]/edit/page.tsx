@@ -23,8 +23,10 @@ import {
   GripVertical,
   FolderPlus,
   History,
+  Sparkles,
 } from "lucide-react";
 import { FormShareActivePanel } from "@/components/admin/form-share-active-panel";
+import { updateFormSchema } from "@/modules/forms/form.schema";
 
 const QUESTION_TYPES = [
   "section",
@@ -125,6 +127,8 @@ export default function EditFormPage() {
     }>
   >([]);
   const [revisionOpenId, setRevisionOpenId] = useState<string | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -378,6 +382,114 @@ export default function EditFormPage() {
     ]
   );
 
+  const handleRefineWithAi = async () => {
+    const p = aiPrompt.trim();
+    if (p.length < 8 || aiLoading || status === "archived") return;
+    setError(null);
+    setAiLoading(true);
+    try {
+      const draft = await api.refineFormDraft(
+        p,
+        {
+          title,
+          description: description.trim() || undefined,
+          closingMessage: closingMessage.trim() || undefined,
+          pausedMessage: pausedMessage.trim() || undefined,
+          responseCount,
+          questions: questions.map((q) => ({
+            id: q.id,
+            type: q.type,
+            text: q.text,
+            required: q.required,
+            options: q.options,
+            scaleMin: q.scaleMin,
+            scaleMax: q.scaleMax,
+          })),
+        },
+        userId
+      );
+      const allowedIds = new Set(questions.map((q) => q.id).filter((x): x is string => Boolean(x)));
+      const idToLocalId = new Map(
+        questions.filter((q) => q.id).map((q) => [q.id as string, q._localId])
+      );
+      let nextK = nextLocalKeyRef.current;
+      const rows: QuestionRow[] = draft.questions.map((q, idx) => {
+        const keepId = q.id && allowedIds.has(q.id) ? q.id : undefined;
+        const prevLocal = keepId ? idToLocalId.get(keepId) : undefined;
+        const lid = prevLocal !== undefined ? prevLocal : nextK++;
+        const row: QuestionRow = {
+          ...(keepId ? { id: keepId } : {}),
+          _localId: lid,
+          type: q.type as QuestionRow["type"],
+          text: q.text,
+          required: q.type === "section" ? false : q.required,
+          orderIndex: idx,
+        };
+        if (q.type === "multiple_choice" || q.type === "dropdown" || q.type === "checkbox") {
+          row.options = [...(q.options ?? [])];
+        }
+        if (q.type === "scale") {
+          row.scaleMin = q.scaleMin ?? DEFAULT_SCALE_MIN;
+          row.scaleMax = q.scaleMax ?? DEFAULT_SCALE_MAX;
+        }
+        return row;
+      });
+      nextLocalKeyRef.current = nextK;
+      const validationPayload = {
+        title: draft.title.trim(),
+        description: (draft.description ?? "").trim() || undefined,
+        closingMessage: (draft.closingMessage ?? "").trim() || null,
+        pausedMessage:
+          draft.pausedMessage !== undefined
+            ? draft.pausedMessage.trim() || null
+            : pausedMessage.trim() || null,
+        folderId,
+        isTemplate,
+        status,
+        slug: slug.trim() || null,
+        allowAnonymous,
+        questions: rows.map((q, i) => {
+          const opts =
+            q.type === "multiple_choice" || q.type === "dropdown" || q.type === "checkbox"
+              ? (q.options ?? []).filter((o) => o.trim().length > 0)
+              : undefined;
+          return {
+            ...(q.id ? { id: q.id } : {}),
+            type: q.type,
+            text: q.text.trim(),
+            required: q.type === "section" ? false : q.required,
+            orderIndex: i,
+            options: opts?.length ? opts : undefined,
+            scaleMin: q.type === "scale" ? (q.scaleMin ?? DEFAULT_SCALE_MIN) : undefined,
+            scaleMax: q.type === "scale" ? (q.scaleMax ?? DEFAULT_SCALE_MAX) : undefined,
+          };
+        }),
+      };
+      const checked = updateFormSchema.safeParse(validationPayload);
+      if (!checked.success) {
+        const msg = checked.error.issues.map((e) => e.message).join("; ");
+        setError(msg);
+        toast(msg, "error");
+        return;
+      }
+      setTitle(draft.title.trim());
+      setDescription(draft.description ?? "");
+      setClosingMessage(draft.closingMessage ?? "");
+      if (draft.pausedMessage !== undefined) {
+        setPausedMessage(draft.pausedMessage);
+      }
+      setQuestions(rows);
+      setAiPrompt("");
+      toast("Formulário atualizado no editor. Revise e salve quando estiver pronto.", "success");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Erro ao refinar com IA";
+      setError(msg);
+      toast(msg, "error");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-lg">
@@ -621,6 +733,41 @@ export default function EditFormPage() {
                 Exibida na confirmação após o envio da resposta.
               </p>
             </div>
+            {status !== "archived" && (
+              <div className="rounded-xl border border-primary-200 bg-primary-50/60 p-md dark:border-primary-900/50 dark:bg-primary-950/25">
+                <div className="mb-2 flex items-center gap-2 text-small font-semibold text-[var(--text-primary)]">
+                  <Sparkles className="h-4 w-4 shrink-0 text-primary-600 dark:text-primary-400" aria-hidden />
+                  Refinar com IA
+                </div>
+                <p className="mb-2 text-caption text-[var(--text-secondary)]">
+                  Descreva o que mudar em português. A IA recebe o estado atual e devolve o formulário completo; IDs de perguntas já salvas são
+                  preservados quando o modelo os repete. Só aplicamos no editor se passar a mesma validação usada ao salvar.
+                </p>
+                {responseCount > 0 ? (
+                  <p className="mb-2 text-caption font-medium text-amber-800 dark:text-amber-200">
+                    Este formulário já tem {responseCount} resposta(s). Evite mudar o sentido das perguntas sem necessidade.
+                  </p>
+                ) : null}
+                <textarea
+                  id="edit-ai-prompt"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  rows={4}
+                  placeholder="Ex.: Adicione uma pergunta sim/não sobre aceite da política de privacidade no final."
+                  disabled={aiLoading}
+                  className="mb-3 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-60 dark:border-neutral-600"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => void handleRefineWithAi()}
+                  disabled={aiLoading || aiPrompt.trim().length < 8}
+                  leftIcon={<Sparkles className="h-4 w-4" />}
+                >
+                  {aiLoading ? "Aplicando…" : "Aplicar refinamento no editor"}
+                </Button>
+              </div>
+            )}
             <div>
               <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                 <label htmlFor="edit-folder-id" className="block text-small font-medium text-[var(--text-primary)]">
