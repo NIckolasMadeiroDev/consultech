@@ -4,39 +4,109 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --surface: #f8fafc;
-    --border: #e5e7eb;
-    --text-primary: #111827;
-    --text-secondary: #6b7280;
-    /* Financeiro */
-    --finance-entry: #16A34A;
-    --finance-exit: #DC2626;
-    --finance-neutral: #64748B;
-    --finance-warning: #F59E0B;
+    --background: #fafbfc;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
+    --border: #e2e8f0;
+    --border-strong: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --ring-focus: #6366f1;
+    --overlay-scrim: rgba(15, 23, 42, 0.45);
+    --finance-entry: #16a34a;
+    --finance-exit: #dc2626;
+    --finance-neutral: #64748b;
+    --finance-warning: #f59e0b;
   }
 
   .dark {
-    --background: #0f172a;
-    --surface: #1e293b;
+    --background: #0b1120;
+    --surface: #151f32;
+    --surface-elevated: #1e293b;
     --border: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --finance-entry: #22C55E;
-    --finance-exit: #EF4444;
+    --border-strong: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --ring-focus: #818cf8;
+    --overlay-scrim: rgba(0, 0, 0, 0.65);
+    --finance-entry: #22c55e;
+    --finance-exit: #f87171;
     --finance-neutral: #94a3b8;
-    --finance-warning: #F59E0B;
+    --finance-warning: #fbbf24;
   }
 
   html {
     @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-150 ease-out;
+    @apply min-h-dvh bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-200 ease-out;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  @supports not (min-height: 100dvh) {
+    body {
+      min-height: 100vh;
+    }
   }
 
   a:focus-visible {
-    @apply rounded-sm outline outline-2 outline-offset-2 outline-primary-600;
+    @apply rounded-md outline outline-2 outline-offset-2;
+    outline-color: var(--ring-focus);
+  }
+
+  .dark a:focus-visible {
+    outline-color: var(--ring-focus);
+  }
+
+  @media (max-width: 640px) {
+    .text-display {
+      font-size: 2rem;
+      line-height: 1.2;
+    }
+    .text-h1 {
+      font-size: 1.625rem;
+      line-height: 1.25;
+    }
+    .text-h2 {
+      font-size: 1.375rem;
+      line-height: 1.3;
+    }
+    .text-h3 {
+      font-size: 1.2rem;
+      line-height: 1.35;
+    }
+    .text-h4 {
+      font-size: 1.05rem;
+      line-height: 1.4;
+    }
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .px-safe {
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  }
+  .scroll-touch {
+    -webkit-overflow-scrolling: touch;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }

@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { LayoutDashboard, Home, Search, BookOpen } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/contexts/toast-context";
-import { Navbar, ThemeToggle } from "@/components/layout";
+import { Navbar, ThemeToggle, AdminMobileDrawer } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({
@@ -50,63 +50,73 @@ export default function AdminLayout({
         left={
           <Link
             href="/admin/forms"
-            className="text-h4 font-semibold text-[var(--text-primary)] hover:text-primary-600 dark:hover:text-primary-400"
+            className="truncate text-base font-semibold text-[var(--text-primary)] hover:text-primary-600 sm:text-h4 dark:hover:text-primary-400"
           >
-            Consultech Admin
+            <span className="sm:hidden">Consultech</span>
+            <span className="hidden sm:inline">Consultech Admin</span>
           </Link>
         }
         right={
           <>
-            <form action="/admin/search" method="get" className="flex items-center gap-1">
-              <input
-                type="search"
-                name="q"
-                placeholder="Buscar..."
-                className="h-9 w-28 rounded-lg border border-neutral-300 bg-[var(--background)] px-3 text-small text-[var(--text-primary)] outline-none transition-colors placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600 sm:w-40"
-              />
-              <Button type="submit" variant="secondary" size="sm">
-                <Search className="h-4 w-4" />
+            <div className="hidden items-center gap-2 lg:flex lg:flex-wrap lg:justify-end">
+              <form action="/admin/search" method="get" className="flex items-center gap-1">
+                <input
+                  type="search"
+                  name="q"
+                  placeholder="Buscar…"
+                  className="h-10 min-h-10 w-36 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 text-small text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 xl:w-44 dark:border-[var(--border)]"
+                />
+                <Button type="submit" variant="secondary" size="sm" aria-label="Buscar">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </form>
+              <Link
+                href="/admin/forms"
+                className="text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                Formulários
+              </Link>
+              <Link
+                href="/admin/dashboards"
+                className="inline-flex items-center gap-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboards
+              </Link>
+              <Link
+                href="/tutorial"
+                className="inline-flex items-center gap-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                title="Ver tutorial do sistema"
+              >
+                <BookOpen className="h-4 w-4" />
+                Tutorial
+              </Link>
+              <span className="max-w-[160px] truncate text-caption text-[var(--text-secondary)]" title={user.email}>
+                {user.email}
+              </span>
+              <ThemeToggle />
+              <Button variant="secondary" size="sm" onClick={handleSignOut}>
+                Sair
               </Button>
-            </form>
-            <Link
-              href="/admin/forms"
-              className="hidden text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:inline"
-            >
-              Formulários
-            </Link>
-            <Link
-              href="/admin/dashboards"
-              className="hidden items-center gap-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:inline-flex"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Dashboards
-            </Link>
-            <Link
-              href="/tutorial"
-              className="hidden items-center gap-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)] sm:inline-flex"
-              title="Ver tutorial do sistema"
-            >
-              <BookOpen className="h-4 w-4" />
-              Tutorial
-            </Link>
-            <span className="hidden max-w-[140px] truncate text-caption text-[var(--text-secondary)] sm:inline">
-              {user.email}
-            </span>
-            <ThemeToggle />
-            <Button variant="secondary" size="sm" onClick={handleSignOut}>
-              Sair
-            </Button>
-            <Link href="/" className="hidden sm:inline">
-              <Button variant="ghost" size="sm">
-                <Home className="h-4 w-4" />
-                Início
+              <Link href="/">
+                <Button variant="ghost" size="sm">
+                  <Home className="h-4 w-4" />
+                  Início
+                </Button>
+              </Link>
+            </div>
+            <div className="flex items-center gap-1 lg:hidden">
+              <AdminMobileDrawer userEmail={user.email} onSignOut={handleSignOut} />
+              <ThemeToggle />
+              <Button variant="secondary" size="sm" onClick={handleSignOut} className="px-2 sm:px-3">
+                Sair
               </Button>
-            </Link>
+            </div>
           </>
         }
       />
-      <main className="flex-1 p-md sm:p-lg">
-        <div className="mx-auto max-w-content">{children}</div>
+      <main className="flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
+        <div className="mx-auto w-full max-w-content">{children}</div>
       </main>
     </div>
   );

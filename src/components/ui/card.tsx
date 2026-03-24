@@ -9,8 +9,8 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 const paddingMap = {
   none: "",
   sm: "p-sm",
-  md: "p-lg",
-  lg: "p-xl",
+  md: "p-md sm:p-lg",
+  lg: "p-lg sm:p-xl",
 };
 
 export function Card({
@@ -21,7 +21,7 @@ export function Card({
 }: Readonly<CardProps>) {
   return (
     <div
-      className={`rounded-lg border border-neutral-200 bg-[var(--surface)] shadow-sm transition-colors duration-150 dark:border-neutral-700 ${paddingMap[padding]} ${className}`}
+      className={`rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-colors duration-150 dark:border-[var(--border)] ${paddingMap[padding]} ${className}`}
       {...props}
     >
       {children}
@@ -35,7 +35,7 @@ export function CardHeader({
   ...props
 }: Readonly<HTMLAttributes<HTMLDivElement>>) {
   return (
-    <div className={`border-b border-neutral-200 pb-lg dark:border-neutral-700 ${className}`} {...props}>
+    <div className={`border-b border-[var(--border)] pb-md sm:pb-lg dark:border-[var(--border)] ${className}`} {...props}>
       {children}
     </div>
   );

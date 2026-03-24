@@ -51,18 +51,19 @@ export function Modal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-50 m-0 flex h-full w-full max-h-none max-w-none items-center justify-center border-0 bg-transparent p-4 backdrop:bg-neutral-900/50 backdrop:dark:bg-neutral-950/60"
+      className="fixed inset-0 z-50 m-0 flex h-full w-full max-h-none max-w-none items-end justify-center border-0 bg-transparent p-0 pt-8 sm:items-center sm:p-4 backdrop:bg-[var(--overlay-scrim)]"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
       <div
         className={cn(
-          "relative z-10 w-full rounded-xl border border-neutral-200 bg-[var(--background)] shadow-lg dark:border-neutral-700",
+          "relative z-10 max-h-[min(92dvh,100%)] w-full overflow-y-auto rounded-t-2xl border border-[var(--border)] bg-[var(--background)] shadow-lg sm:max-h-[85dvh] sm:rounded-xl dark:border-[var(--border)]",
+          "pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-0",
           panelClassName ?? "max-w-lg"
         )}
       >
         {(title || closeOnOverlayClick) && (
-          <div className="flex items-center justify-between border-b border-neutral-200 p-lg dark:border-neutral-700">
+          <div className="flex items-center justify-between border-b border-[var(--border)] p-md sm:p-lg dark:border-[var(--border)]">
             {title && (
               <h2 id="modal-title" className="text-h4 text-[var(--text-primary)]">
                 {title}
@@ -80,9 +81,9 @@ export function Modal({
             </div>
           </div>
         )}
-        <div className={cn("p-lg", bodyClassName)}>{children}</div>
+        <div className={cn("p-md sm:p-lg", bodyClassName)}>{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-neutral-200 p-lg dark:border-neutral-700">
+          <div className="flex flex-wrap justify-end gap-2 border-t border-[var(--border)] p-md sm:p-lg dark:border-[var(--border)]">
             {footer}
           </div>
         )}

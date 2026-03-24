@@ -58,8 +58,11 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--surface)] p-4 sm:p-6">
-      <div className="absolute right-4 top-4 sm:right-6 sm:top-6">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-[var(--surface)] p-4 pb-safe pt-12 sm:p-6 sm:pt-6">
+      <div
+        className="absolute right-4 sm:right-6"
+        style={{ top: "max(1rem, env(safe-area-inset-top, 0px))" }}
+      >
         <ThemeToggle />
       </div>
       <Card className="w-full max-w-sm" padding="lg">

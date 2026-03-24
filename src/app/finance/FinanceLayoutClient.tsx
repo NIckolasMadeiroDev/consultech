@@ -55,8 +55,8 @@ export function FinanceNav({ className = "" }: Readonly<{ className?: string }>)
             className={cn(
               "flex items-center gap-2 rounded-lg px-3 py-2 text-small font-medium transition-colors duration-150",
               isActive
-                ? "bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300"
-                : "text-[var(--text-secondary)] hover:bg-neutral-100 hover:text-[var(--text-primary)] dark:hover:bg-neutral-800"
+                ? "bg-primary-100 text-primary-800 dark:bg-primary-900/45 dark:text-primary-200"
+                : "text-[var(--text-secondary)] hover:bg-neutral-100 hover:text-[var(--text-primary)] dark:hover:bg-neutral-800/90"
             )}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden />
@@ -68,40 +68,74 @@ export function FinanceNav({ className = "" }: Readonly<{ className?: string }>)
   );
 }
 
+function FinanceMobileNavStrip() {
+  const pathname = usePathname();
+  return (
+    <nav
+      aria-label="Atalhos do financeiro"
+      className="hide-scrollbar scroll-touch flex gap-1.5 overflow-x-auto border-t border-[var(--border)] bg-[var(--surface)]/95 px-2 py-2.5 dark:border-[var(--border)] lg:hidden"
+    >
+      {NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+        const isActive = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2.5 text-caption font-semibold transition-colors sm:text-small",
+              isActive
+                ? "bg-primary-600 text-white shadow-sm dark:bg-primary-500"
+                : "bg-[var(--background)] text-[var(--text-primary)] ring-1 ring-[var(--border)] hover:bg-neutral-50 dark:hover:bg-neutral-800/80"
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function FinanceLayoutClient({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <FinanceAccessProvider>
-      <div className="flex min-h-screen flex-col bg-[var(--background)]">
-        <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-neutral-200 bg-[var(--background)]/95 px-4 py-3 backdrop-blur sm:px-6 dark:border-neutral-700">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1 text-small font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-            >
-              <ArrowLeftRight className="h-4 w-4" aria-hidden />
-              Sair do Financeiro
-            </Link>
-            <span className="hidden border-l border-neutral-200 pl-4 dark:border-neutral-600 sm:inline">
-              <span className="font-semibold text-[var(--text-primary)]">Módulo Financeiro</span>
-            </span>
+      <div className="flex min-h-dvh flex-col bg-[var(--background)]">
+        <header
+          className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--background)]/95 backdrop-blur-md dark:border-[var(--border)]"
+          style={{ paddingTop: "max(0px, env(safe-area-inset-top, 0px))" }}
+        >
+          <div className="flex items-center justify-between gap-2 px-safe py-3 sm:px-5">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+              <Link
+                href="/"
+                className="inline-flex min-h-11 min-w-0 items-center gap-1 rounded-lg px-1 text-small font-medium text-[var(--text-secondary)] transition-colors hover:bg-neutral-100 hover:text-[var(--text-primary)] dark:hover:bg-neutral-800/80"
+              >
+                <ArrowLeftRight className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="truncate sm:max-w-none">Sair</span>
+              </Link>
+              <span className="hidden border-l border-[var(--border)] pl-4 sm:inline dark:border-[var(--border)]">
+                <span className="font-semibold text-[var(--text-primary)]">Módulo Financeiro</span>
+              </span>
+            </div>
+            <ThemeToggle />
           </div>
-          <ThemeToggle />
+          <FinanceMobileNavStrip />
         </header>
 
         <div className="flex flex-1">
-          <aside className="hidden w-56 shrink-0 border-r border-neutral-200 bg-[var(--surface)] p-4 dark:border-neutral-700 lg:block">
+          <aside className="hidden w-56 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] p-4 dark:border-[var(--border)] lg:block">
             <FinanceNav />
           </aside>
 
-          <main className="min-w-0 flex-1 p-4 sm:p-6">
-            <div className="mx-auto max-w-content">{children}</div>
+          <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6 lg:px-8">
+            <div className="mx-auto w-full max-w-content">{children}</div>
           </main>
         </div>
 
         {/* Chat flutuante IA - botão fixo */}
         <FinanceAIChatButton />
-
-        {/* Seleção de modo (admin x visitante) */}
         <FinanceModeChooser />
       </div>
     </FinanceAccessProvider>
@@ -115,7 +149,11 @@ function FinanceAIChatButton() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-[var(--background)]"
+        className="fixed z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-[var(--background)]"
+        style={{
+          bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
+          right: "max(1rem, env(safe-area-inset-right, 0px))",
+        }}
         aria-label={open ? "Fechar chat da IA" : "Abrir chat da IA para análise financeira"}
       >
         <MessageCircle className="h-6 w-6" aria-hidden />
@@ -177,9 +215,14 @@ function FinanceAIChatPanel({ onClose }: Readonly<{ onClose: () => void }>) {
   }
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 w-full max-w-sm sm:right-6">
+    <div
+      className="fixed left-3 right-3 z-50 w-auto max-w-sm sm:left-auto sm:right-6"
+      style={{
+        bottom: "max(6rem, calc(env(safe-area-inset-bottom, 0px) + 5rem))",
+      }}
+    >
       <Card padding="md" className="shadow-lg">
-        <div className="flex items-center justify-between gap-2 border-b border-neutral-200 pb-2 dark:border-neutral-700">
+        <div className="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-2 dark:border-[var(--border)]">
           <h3 className="text-h4 text-[var(--text-primary)]">IA Financeira</h3>
           <Button variant="ghost" size="sm" onClick={onClose} aria-label="Fechar">
             <X className="h-4 w-4" />
@@ -195,7 +238,7 @@ function FinanceAIChatPanel({ onClose }: Readonly<{ onClose: () => void }>) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Ex.: Como está o saldo?"
-            className="min-w-0 flex-1 rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-small outline-none focus:border-primary-500 dark:border-neutral-600"
+            className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-small outline-none focus:border-primary-500 dark:border-[var(--border)]"
             disabled={loading}
           />
           <Button size="sm" onClick={handleSend} disabled={loading || !input.trim()} leftIcon={<Send className="h-4 w-4" />}>

@@ -5,8 +5,6 @@ import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 
-const NAVBAR_HEIGHT = "64px";
-
 export interface NavbarProps {
   readonly left?: React.ReactNode;
   readonly right?: React.ReactNode;
@@ -16,17 +14,17 @@ export interface NavbarProps {
 export function Navbar({ left, right, title }: NavbarProps) {
   return (
     <header
-      className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-neutral-200 bg-[var(--surface)] px-lg shadow-sm dark:border-neutral-700"
-      style={{ minHeight: NAVBAR_HEIGHT }}
+      className="flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--surface)] px-safe py-2 shadow-sm sm:min-h-16 sm:gap-4 sm:px-4 sm:py-0 md:px-6 dark:border-[var(--border)]"
+      style={{ paddingTop: `max(0.5rem, env(safe-area-inset-top, 0px))` }}
       role="banner"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-4">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-4">
         {left}
         {title && (
           <h1 className="truncate text-h4 text-[var(--text-primary)]">{title}</h1>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">{right}</div>
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2">{right}</div>
     </header>
   );
 }
