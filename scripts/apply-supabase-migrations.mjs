@@ -43,6 +43,7 @@ const files = [
   "003_form_folder_template.sql",
   "004_form_folder_entity.sql",
   "005_form_revision.sql",
+  "006_form_paused_message.sql",
 ];
 
 async function main() {
