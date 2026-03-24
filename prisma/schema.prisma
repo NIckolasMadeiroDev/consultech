@@ -140,6 +140,13 @@ model AuditLog {
   createdAt  DateTime @default(now()) @map("created_at")
 }
 
+model AppSqlMigration {
+  filename  String   @id
+  appliedAt DateTime @default(now()) @map("applied_at")
+
+  @@map("_app_sql_migrations")
+}
+
 // ========== Módulo Financeiro (isolado do restante do sistema) ==========
 
 model FinanceCashbox {
