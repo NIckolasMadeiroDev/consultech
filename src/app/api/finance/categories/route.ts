@@ -4,7 +4,7 @@ import { prisma } from "@/infrastructure/database/prisma";
 import { getAuditLogRepository } from "@/infrastructure/database/repositories";
 import { getSession } from "@/lib/auth-session";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   return apiHandler(async () => {
     const rows = await prisma.financeCategory.findMany({
       orderBy: [{ type: "asc" }, { name: "asc" }],

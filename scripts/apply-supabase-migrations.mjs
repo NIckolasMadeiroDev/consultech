@@ -58,12 +58,14 @@ function toDirectUrl(raw) {
 }
 
 const files = [
+  "000_vector_extension.sql",
   "001_initial_schema.sql",
   "002_form_closing_message.sql",
   "003_form_folder_template.sql",
   "004_form_folder_entity.sql",
   "005_form_revision.sql",
   "006_form_paused_message.sql",
+  "007_form_prisma_alignment.sql",
 ];
 
 async function main() {

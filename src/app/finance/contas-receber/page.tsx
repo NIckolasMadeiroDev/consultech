@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUpCircle, Plus, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -25,10 +25,10 @@ export default function FinanceContasReceberPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("pending");
-   const { mode } = useFinanceAccess();
-   const readOnly = mode === "visitor";
+  const { mode } = useFinanceAccess();
+  const readOnly = mode === "visitor";
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     fetch(`/api/finance/receivables?status=${statusFilter}`)
       .then((r) => {
@@ -40,11 +40,11 @@ export default function FinanceContasReceberPage() {
       .then(setItems)
       .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
       .finally(() => setLoading(false));
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     load();
-  }, [statusFilter]);
+  }, [load]);
 
   async function receber(id: string, cashboxId: string) {
     if (!cashboxId) { alert("Selecione o caixa para recebimento."); return; }
@@ -67,7 +67,7 @@ export default function FinanceContasReceberPage() {
             Controle de receitas futuras. Receber gera uma entrada no caixa.
           </p>
         </div>
-        {mode === "admin" && (
+        {!readOnly && (
           <Link href="/finance/contas-receber/novo">
             <Button leftIcon={<Plus className="h-4 w-4" />}>Nova conta a receber</Button>
           </Link>
@@ -88,7 +88,7 @@ export default function FinanceContasReceberPage() {
             <div className="flex flex-col items-center justify-center py-16">
               <ArrowUpCircle className="mb-4 h-12 w-12 text-[var(--text-secondary)]" aria-hidden />
               <p className="text-body text-[var(--text-secondary)]">{statusFilter === "pending" ? "Nenhuma conta a receber pendente." : "Nenhuma conta recebida no filtro."}</p>
-              {statusFilter === "pending" && mode === "admin" && (
+              {statusFilter === "pending" && !readOnly && (
                 <Link href="/finance/contas-receber/novo" className="mt-4">
                   <Button variant="primary">Nova conta a receber</Button>
                 </Link>
@@ -104,7 +104,7 @@ export default function FinanceContasReceberPage() {
                     <th className="p-lg font-medium text-[var(--text-primary)]">Categoria</th>
                     <th className="p-lg text-right font-medium text-[var(--text-primary)]">Valor</th>
                     {statusFilter === "received" && <th className="p-lg font-medium text-[var(--text-primary)]">Recebido em</th>}
-                    {statusFilter === "pending" && mode === "admin" && (
+                    {statusFilter === "pending" && !readOnly && (
                       <th className="p-lg font-medium text-[var(--text-primary)]">Ações</th>
                     )}
                   </tr>
@@ -121,7 +121,7 @@ export default function FinanceContasReceberPage() {
                           {r.receivedAt ? new Date(r.receivedAt).toLocaleDateString("pt-BR") : "—"}
                         </td>
                       )}
-                      {statusFilter === "pending" && mode === "admin" && (
+                      {statusFilter === "pending" && !readOnly && (
                         <td className="p-lg">
                           <Link href={`/finance/contas-receber/${r.id}/editar`} className="mr-2 text-primary-600 hover:underline">Editar</Link>
                           <ReceberButton receivableId={r.id} onReceber={receber} onSuccess={load} />

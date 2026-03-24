@@ -23,6 +23,7 @@ import {
   GripVertical,
   Search,
   FolderPlus,
+  Rocket,
 } from "lucide-react";
 
 type FormItem = {
@@ -369,6 +370,30 @@ export default function AdminFormsPage() {
           >
             Usar modelo
           </Button>
+        )}
+        {form.status === "draft" && (
+          <Link href={`/admin/forms/${form.id}/edit#publicar-formulario`}>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              leftIcon={<Rocket className="h-4 w-4" aria-hidden />}
+            >
+              Tirar do rascunho e publicar
+            </Button>
+          </Link>
+        )}
+        {form.status === "paused" && (
+          <Link href={`/admin/forms/${form.id}/edit#publicar-formulario`}>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              leftIcon={<Rocket className="h-4 w-4" aria-hidden />}
+            >
+              Reativar e publicar
+            </Button>
+          </Link>
         )}
         <Link href={`/admin/forms/${form.id}/edit`}>
           <Button variant="secondary" size="sm" leftIcon={<FileEdit className="h-4 w-4" />}>

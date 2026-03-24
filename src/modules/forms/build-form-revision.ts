@@ -41,6 +41,7 @@ export function snapshotFormState(form: Form, questions: Question[]): FormSnapsh
     title: form.title,
     description: form.description ?? "",
     closingMessage: form.closingMessage ?? "",
+    pausedMessage: form.pausedMessage ?? "",
     folderId: form.folderId ?? "",
     isTemplate: form.isTemplate ?? false,
     status: form.status,

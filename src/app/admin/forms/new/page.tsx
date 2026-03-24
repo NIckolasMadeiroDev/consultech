@@ -422,8 +422,9 @@ export default function NewFormPage() {
       <Card className="mb-lg max-w-2xl border-neutral-200 dark:border-neutral-700" padding="md">
         <p className="text-body text-[var(--text-primary)]">
           No passo <strong>Revisar</strong> você pode <strong>criar e publicar</strong> de uma vez ou marcar{" "}
-          <strong>Já publicar como Ativo</strong>. Se criar só em rascunho, na edição use{" "}
-          <strong>Publicar agora</strong> ou status <strong>Ativo</strong> para o link aceitar respostas.
+          <strong>Já publicar como Ativo</strong>. Se criar só em rascunho, use na lista{" "}
+          <strong>Tirar do rascunho e publicar</strong> ou em Editar{" "}
+          <strong>Tirar do rascunho e publicar agora</strong> / status <strong>Ativo</strong> + Salvar.
         </p>
       </Card>
 
@@ -479,7 +480,7 @@ export default function NewFormPage() {
           >
             {step === 3 && publishAsActive
               ? "Ao criar: Ativo — link aceitará respostas."
-              : "Falta publicar: ao criar ficará em rascunho até você publicar em Editar (ou marque “Já publicar como Ativo” / “Criar e publicar”)."}
+              : "Falta publicar: ao criar ficará em rascunho até usar Tirar do rascunho e publicar ou marque “Já publicar como Ativo” / “Criar e publicar”."}
           </p>
         </div>
       </div>

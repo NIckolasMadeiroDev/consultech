@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,12 +58,13 @@ export function FormShareActivePanel({ respondUrl, shortUrl }: FormShareActivePa
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           <div className="shrink-0 rounded-lg border border-neutral-200 bg-white p-2 dark:border-neutral-600 dark:bg-neutral-900">
             {qrSrc ? (
-              <img
+              <Image
                 src={qrSrc}
                 width={200}
                 height={200}
                 className="h-[200px] w-[200px]"
                 alt="QR code com o link para responder o formulário"
+                unoptimized
               />
             ) : (
               <div className="flex h-[200px] w-[200px] items-center justify-center text-caption text-[var(--text-secondary)]">

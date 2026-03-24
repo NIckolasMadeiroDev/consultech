@@ -54,7 +54,7 @@ const TYPE_LABELS: Record<(typeof QUESTION_TYPES)[number], string> = {
 
 const STATUS_HINTS: Record<string, string> = {
   draft:
-    "Rascunho: não aceita respostas. Para publicar, altere o status para Ativo ou use Publicar agora.",
+    "Rascunho: o link não aceita respostas. Use “Tirar do rascunho e publicar agora” ou status Ativo + Salvar.",
   active: "Ativo: aceita respostas. Compartilhe o link com os respondentes.",
   paused: "Não aceita respostas. Pode reativar depois.",
   archived: "Só leitura. Não aceita respostas nem edição de conteúdo.",
@@ -417,8 +417,10 @@ export default function EditFormPage() {
         >
           <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
           <p>
-            <strong>Falta publicar.</strong> O link não aceita respostas até o status ser{" "}
-            <strong>Ativo</strong>. Use o cartão abaixo ou altere o status nas informações do formulário.
+            <strong>Ainda em rascunho ou pausado.</strong> O link só passa a aceitar respostas quando você{" "}
+            <strong>tirar do rascunho</strong> (status <strong>Ativo</strong>). Use o botão destacado no
+            cartão <strong>Tirar do rascunho e publicar</strong> abaixo ou altere o status para{" "}
+            <strong>Ativo</strong> e salve.
           </p>
         </div>
       ) : status === "active" ? (
@@ -518,39 +520,51 @@ export default function EditFormPage() {
 
         {(status === "draft" || status === "paused") && (
           <Card
-            className="max-w-2xl border-primary-200 bg-primary-50/50 dark:border-primary-900 dark:bg-primary-950/30"
+            id="publicar-formulario"
+            className="max-w-2xl scroll-mt-24 border-2 border-primary-400 bg-primary-50/70 shadow-md dark:border-primary-600 dark:bg-primary-950/40"
             padding="lg"
           >
             <CardHeader>
-              <CardTitle>Publicar o formulário</CardTitle>
+              <CardTitle>
+                {status === "draft"
+                  ? "Tirar do rascunho e publicar"
+                  : "Reativar e publicar"}
+              </CardTitle>
+              <p className="mt-2 text-body text-[var(--text-secondary)]">
+                {status === "draft"
+                  ? "Enquanto for rascunho, ninguém consegue responder pelo link. Ao publicar, o status vira Ativo e as respostas são liberadas."
+                  : "Enquanto estiver pausado, o link não aceita respostas. Publicar de volta deixa o formulário Ativo."}
+              </p>
             </CardHeader>
             <CardContent className="space-y-md">
               <p className="text-body text-[var(--text-primary)]">
-                Enquanto estiver em <strong>Rascunho</strong> ou <strong>Pausado</strong>, o link{" "}
-                <strong>não aceita</strong> respostas. Com status <strong>Ativo</strong>, qualquer pessoa com o
-                link pode responder.
+                O passo efetivo é gravar o formulário como <strong>Ativo</strong>. Use o botão principal
+                abaixo (mais rápido) ou escolha <strong>Ativo</strong> no campo Status e clique em{" "}
+                <strong>Salvar</strong>.
               </p>
               <div className="flex flex-wrap gap-2">
                 {status === "draft" && (
                   <Button
                     type="button"
                     variant="primary"
+                    size="lg"
                     loading={saving}
                     disabled={saving}
                     onClick={() => void persist(false, "active")}
                   >
-                    Publicar agora
+                    Tirar do rascunho e publicar agora
                   </Button>
                 )}
                 {status === "paused" && (
                   <Button
                     type="button"
                     variant="primary"
+                    size="lg"
                     loading={saving}
                     disabled={saving}
                     onClick={() => void persist(false, "active")}
                   >
-                    Reativar e publicar
+                    Reativar e publicar agora
                   </Button>
                 )}
                 <Link href={`/forms/${id}/respond`} target="_blank" rel="noopener noreferrer">

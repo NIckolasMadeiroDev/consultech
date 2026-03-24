@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowDownCircle, Plus, CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -28,7 +28,7 @@ export default function FinanceContasPagarPage() {
   const { mode } = useFinanceAccess();
   const readOnly = mode === "visitor";
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     fetch(`/api/finance/payables?status=${statusFilter}`)
       .then((r) => {
@@ -40,11 +40,11 @@ export default function FinanceContasPagarPage() {
       .then(setItems)
       .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
       .finally(() => setLoading(false));
-  };
+  }, [statusFilter]);
 
   useEffect(() => {
     load();
-  }, [statusFilter]);
+  }, [load]);
 
   async function quitar(id: string, cashboxId: string) {
     if (!cashboxId) {
@@ -73,7 +73,7 @@ export default function FinanceContasPagarPage() {
             Controle de obrigações a pagar. Quitar gera uma saída no caixa.
           </p>
         </div>
-        {mode === "admin" && (
+        {!readOnly && (
           <Link href="/finance/contas-pagar/novo">
             <Button leftIcon={<Plus className="h-4 w-4" />}>Nova conta a pagar</Button>
           </Link>
@@ -120,7 +120,7 @@ export default function FinanceContasPagarPage() {
               <p className="text-body text-[var(--text-secondary)]">
                 {statusFilter === "pending" ? "Nenhuma conta a pagar pendente." : "Nenhuma conta paga no filtro."}
               </p>
-              {statusFilter === "pending" && mode === "admin" && (
+              {statusFilter === "pending" && !readOnly && (
                 <Link href="/finance/contas-pagar/novo" className="mt-4">
                   <Button variant="primary">Nova conta a pagar</Button>
                 </Link>
@@ -136,7 +136,7 @@ export default function FinanceContasPagarPage() {
                     <th className="p-lg font-medium text-[var(--text-primary)]">Categoria</th>
                     <th className="p-lg text-right font-medium text-[var(--text-primary)]">Valor</th>
                     {statusFilter === "paid" && <th className="p-lg font-medium text-[var(--text-primary)]">Pago em</th>}
-                    {statusFilter === "pending" && mode === "admin" && (
+                    {statusFilter === "pending" && !readOnly && (
                       <th className="p-lg font-medium text-[var(--text-primary)]">Ações</th>
                     )}
                   </tr>
@@ -153,7 +153,7 @@ export default function FinanceContasPagarPage() {
                           {p.paidAt ? new Date(p.paidAt).toLocaleDateString("pt-BR") : "—"}
                         </td>
                       )}
-                      {statusFilter === "pending" && mode === "admin" && (
+                      {statusFilter === "pending" && !readOnly && (
                         <td className="p-lg">
                           <Link href={`/finance/contas-pagar/${p.id}/editar`} className="mr-2 text-primary-600 hover:underline">Editar</Link>
                           <QuitarButton payableId={p.id} onQuitar={quitar} onSuccess={load} />

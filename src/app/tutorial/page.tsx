@@ -166,7 +166,11 @@ export default function TutorialPage() {
             <li>Clique em <strong>Novo formulário</strong> no canto superior direito.</li>
             <li>Passo 1 — Informações: preencha título, descrição (opcional), slug (opcional, para link curto) e se permite resposta anônima.</li>
             <li>Passo 2 — Perguntas: tipos incluem texto curto/longo, múltipla escolha, lista suspensa (dropdown), checkbox, escala, sim/não, data, número e seções; para opções, use as setas para reordenar. Pasta e “modelo” ajudam a organizar e reutilizar pesquisas periódicas.</li>
-            <li>Publicar: em Editar, use “Publicar agora” ou status Ativo; só assim o link aceita respostas.</li>
+            <li>
+              Publicar: na lista, <strong>Tirar do rascunho e publicar</strong> leva à edição no cartão certo; em
+              Editar, use <strong>Tirar do rascunho e publicar agora</strong> ou status <strong>Ativo</strong> +
+              Salvar — só assim o link aceita respostas.
+            </li>
             <li>Passo 3 — Revisar: confira os dados; use <strong>Criar formulário</strong> (com ou sem &quot;Já publicar como Ativo&quot;) ou <strong>Criar e publicar</strong>. Depois você cai na edição do formulário.</li>
           </ul>
           <h4 className="mb-2 text-h4 text-[var(--text-primary)]">Editar formulário</h4>

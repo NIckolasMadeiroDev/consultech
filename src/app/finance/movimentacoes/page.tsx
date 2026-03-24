@@ -80,7 +80,7 @@ export default function FinanceMovimentacoesPage() {
 
   useEffect(() => {
     load();
-  }, [data.page, data.limit]);
+  }, [load]);
 
   useEffect(() => {
     fetch("/api/finance/cashboxes?all=1").then((r) => r.json()).then(setCashboxes).catch(() => setCashboxes([]));
@@ -142,7 +142,7 @@ export default function FinanceMovimentacoesPage() {
             Registro de entradas, saídas, sangrias, suprimentos e transferências.
           </p>
         </div>
-        {mode === "admin" && (
+        {!readOnly && (
           <Link href="/finance/movimentacoes/nova">
             <Button className="inline-flex items-center gap-2">
               <Plus className="h-4 w-4" aria-hidden />
@@ -246,7 +246,7 @@ export default function FinanceMovimentacoesPage() {
                   <th className="p-lg font-medium text-[var(--text-primary)]">Categoria</th>
                   <th className="p-lg text-right font-medium text-[var(--text-primary)]">Entrada</th>
                   <th className="p-lg text-right font-medium text-[var(--text-primary)]">Saída</th>
-                  {mode === "admin" && (
+                  {!readOnly && (
                     <th className="p-lg font-medium text-[var(--text-primary)]">Ações</th>
                   )}
                 </tr>
@@ -270,7 +270,7 @@ export default function FinanceMovimentacoesPage() {
                     <td className="p-lg text-right font-mono">
                       {isExit(t.type) ? <MoneyValue value={t.amount} variant="exit" size="table" /> : <span className="text-[var(--text-secondary)]">—</span>}
                     </td>
-                    {mode === "admin" && (
+                    {!readOnly && (
                       <td className="p-lg">
                         <Link href={`/finance/movimentacoes/${t.id}/editar`} className="mr-2 inline-flex items-center gap-1 text-primary-600 hover:underline">
                           <Pencil className="h-3.5 w-3.5" /> Editar
@@ -285,7 +285,7 @@ export default function FinanceMovimentacoesPage() {
               </tbody>
             </table>
           </div>
-          {data.items.length === 0 && mode === "admin" && (
+          {data.items.length === 0 && !readOnly && (
             <div className="flex flex-col items-center justify-center py-16">
               <ArrowLeftRight className="mb-4 h-12 w-12 text-[var(--text-secondary)]" aria-hidden />
               <p className="text-body text-[var(--text-secondary)]">Nenhuma movimentação encontrada.</p>

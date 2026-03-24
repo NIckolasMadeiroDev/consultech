@@ -1,4 +1,3 @@
-import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/infrastructure/database/prisma";
 import { calculateBalance } from "@/domain/finance/calculateBalance";
@@ -34,7 +33,7 @@ function startOfNextMonth(d: Date): Date {
   return x;
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   return apiHandler(async () => {
     const now = new Date();
     const monthStart = startOfMonth(now);
