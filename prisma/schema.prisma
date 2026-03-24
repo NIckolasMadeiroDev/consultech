@@ -15,7 +15,8 @@ model Admin {
   createdAt    DateTime     @default(now()) @map("created_at")
   forms        Form[]
   dashboards   Dashboard[]
-  formFolders  FormFolder[]
+  formFolders   FormFolder[]
+  formRevisions FormRevision[]
 }
 
 model FormFolder {
@@ -35,6 +36,7 @@ model Form {
   title          String
   description    String?
   closingMessage String?     @map("closing_message")
+  pausedMessage  String?     @map("paused_message")
   folderId       String?     @map("folder_id") @db.Uuid
   isTemplate     Boolean     @default(false) @map("is_template")
   status         String      @default("draft")
@@ -48,6 +50,22 @@ model Form {
   folderRef      FormFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   questions      Question[]
   responses      Response[]
+  formRevisions  FormRevision[]
+}
+
+model FormRevision {
+  id         String   @id @default(uuid()) @db.Uuid
+  formId     String   @map("form_id") @db.Uuid
+  version    Int
+  editedById String?  @map("edited_by") @db.Uuid
+  summary    String
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+  form       Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  editedBy   Admin?   @relation(fields: [editedById], references: [id])
+
+  @@index([formId, createdAt(sort: Desc)])
+  @@map("form_revision")
 }
 
 model Question {

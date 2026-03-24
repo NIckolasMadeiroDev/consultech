@@ -6,7 +6,9 @@ import { PrismaRespondentRepository } from "@/modules/responses/infrastructure/p
 import { PrismaResponseRepository } from "@/modules/responses/infrastructure/prisma-response.repository";
 import { PrismaDashboardRepository } from "@/modules/dashboard/infrastructure/prisma-dashboard.repository";
 import { PrismaAuditLogRepository } from "@/modules/audit/infrastructure/prisma-audit-log.repository";
+import { PrismaFormRevisionRepository } from "@/modules/forms/infrastructure/prisma-form-revision.repository";
 import type { IFormRepository } from "@/modules/forms/form.repository.interface";
+import type { IFormRevisionRepository } from "@/modules/forms/form-revision.repository.interface";
 import type { IFolderRepository } from "@/modules/folders/folder.repository.interface";
 import type { IQuestionRepository } from "@/modules/forms/question.repository.interface";
 import type { IRespondentRepository } from "@/modules/responses/respondent.repository.interface";
@@ -40,4 +42,8 @@ export function getDashboardRepository(): IDashboardRepository {
 
 export function getAuditLogRepository(): IAuditLogRepository {
   return new PrismaAuditLogRepository(prisma);
+}
+
+export function getFormRevisionRepository(): IFormRevisionRepository {
+  return new PrismaFormRevisionRepository(prisma);
 }

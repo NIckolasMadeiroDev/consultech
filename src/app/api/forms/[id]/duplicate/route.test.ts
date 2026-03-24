@@ -5,12 +5,19 @@ vi.mock("@/infrastructure/database/repositories", () => ({
   getFormRepository: vi.fn(),
   getQuestionRepository: vi.fn(),
   getAuditLogRepository: vi.fn(),
+  getFormRevisionRepository: vi.fn(),
+}));
+
+vi.mock("@/lib/auth-session", () => ({
+  getCreatedBy: vi.fn().mockResolvedValue("admin-1"),
+  getSession: vi.fn().mockResolvedValue(null),
 }));
 
 import {
   getFormRepository,
   getQuestionRepository,
   getAuditLogRepository,
+  getFormRevisionRepository,
 } from "@/infrastructure/database/repositories";
 
 describe("POST /api/forms/[id]/duplicate", () => {
@@ -22,8 +29,12 @@ describe("POST /api/forms/[id]/duplicate", () => {
     vi.mocked(getQuestionRepository).mockReturnValue({
       findByFormId: vi.fn(),
       createMany: vi.fn(),
+      updateMany: vi.fn(),
     } as never);
     vi.mocked(getAuditLogRepository).mockReturnValue({
+      create: vi.fn().mockResolvedValue({}),
+    } as never);
+    vi.mocked(getFormRevisionRepository).mockReturnValue({
       create: vi.fn().mockResolvedValue({}),
     } as never);
   });
@@ -54,12 +65,13 @@ describe("POST /api/forms/[id]/duplicate", () => {
       updatedAt: new Date(),
     };
     vi.mocked(getFormRepository).mockReturnValue({
-      findById: vi.fn().mockResolvedValue({ id: "f1" }),
+      findById: vi.fn().mockResolvedValue({ id: "f1", title: "Original" }),
       duplicate: vi.fn().mockResolvedValue(duplicated),
     } as never);
     vi.mocked(getQuestionRepository).mockReturnValue({
       findByFormId: vi.fn().mockResolvedValue([]),
       createMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn(),
     } as never);
     const req = new Request("http://localhost/api/forms/f1/duplicate", {
       method: "POST",

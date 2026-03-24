@@ -423,7 +423,7 @@ export default function AdminFormsPage() {
                   }}
                 >
                   <CopyPlus className="h-4 w-4" />
-                  Duplicar
+                  Duplicar (perguntas e seções)
                 </button>
                 {form.status !== "archived" && (
                   <button
@@ -711,8 +711,8 @@ export default function AdminFormsPage() {
             </p>
           ) : (
             <p className="text-body text-[var(--text-primary)]">
-              Será criada uma cópia em rascunho (útil para repetir a mesma pesquisa no ano seguinte ou a partir de
-              um modelo). Depois edite o título, pasta e publique.
+              Será criada uma cópia em rascunho com todas as perguntas, seções e regras condicionais preservadas.
+              Depois edite o título, pasta e publique.
             </p>
           )}
         </Modal>

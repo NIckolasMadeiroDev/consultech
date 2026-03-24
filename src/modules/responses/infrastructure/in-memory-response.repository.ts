@@ -42,6 +42,13 @@ export class InMemoryResponseRepository implements IResponseRepository {
     if (filters?.endDate) {
       list = list.filter((r) => r.submittedAt <= filters.endDate!);
     }
+    if (filters?.answerValue?.trim()) {
+      const term = filters.answerValue.trim().toLowerCase();
+      list = list.filter((r) => {
+        const ans = Array.from(answerStore.values()).filter((a) => a.responseId === r.id);
+        return ans.some((a) => JSON.stringify(a.value).toLowerCase().includes(term));
+      });
+    }
     return list.sort(
       (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()
     );
@@ -75,6 +82,13 @@ export class InMemoryResponseRepository implements IResponseRepository {
     }
     if (filters?.endDate) {
       list = list.filter((r) => r.submittedAt <= filters.endDate!);
+    }
+    if (filters?.answerValue?.trim()) {
+      const term = filters.answerValue.trim().toLowerCase();
+      list = list.filter((r) => {
+        const ans = Array.from(answerStore.values()).filter((a) => a.responseId === r.id);
+        return ans.some((a) => JSON.stringify(a.value).toLowerCase().includes(term));
+      });
     }
     const sorted = [...list].sort(
       (a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()

@@ -8,6 +8,7 @@ function toFormEntity(row: {
   title: string;
   description: string | null;
   closingMessage: string | null;
+  pausedMessage: string | null;
   folderId: string | null;
   folderRef: { name: string } | null;
   isTemplate: boolean;
@@ -24,6 +25,7 @@ function toFormEntity(row: {
     title: row.title,
     description: row.description ?? undefined,
     closingMessage: row.closingMessage ?? undefined,
+    pausedMessage: row.pausedMessage ?? undefined,
     folderId: row.folderId ?? undefined,
     folder: row.folderRef?.name ?? undefined,
     isTemplate: row.isTemplate,
@@ -48,6 +50,7 @@ export class PrismaFormRepository implements IFormRepository {
         title: data.title,
         description: data.description,
         closingMessage: data.closingMessage ?? null,
+        pausedMessage: data.pausedMessage ?? null,
         folderId: data.folderId ?? null,
         isTemplate: data.isTemplate ?? false,
         status: data.status ?? "draft",
@@ -91,6 +94,7 @@ export class PrismaFormRepository implements IFormRepository {
       title?: string;
       description?: string;
       closingMessage?: string | null;
+      pausedMessage?: string | null;
       folderId?: string | null;
       isTemplate?: boolean;
       status?: string;
@@ -100,6 +104,7 @@ export class PrismaFormRepository implements IFormRepository {
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.closingMessage !== undefined) updateData.closingMessage = data.closingMessage;
+    if (data.pausedMessage !== undefined) updateData.pausedMessage = data.pausedMessage;
     if (data.folderId !== undefined) updateData.folderId = data.folderId;
     if (data.isTemplate !== undefined) updateData.isTemplate = data.isTemplate;
     if (data.status !== undefined) updateData.status = data.status;
@@ -111,6 +116,19 @@ export class PrismaFormRepository implements IFormRepository {
       include: folderInclude,
     });
     return toFormEntity(row);
+  }
+
+  async setVersion(id: string, version: number): Promise<Form | null> {
+    try {
+      const row = await this.prisma.form.update({
+        where: { id },
+        data: { version },
+        include: folderInclude,
+      });
+      return toFormEntity(row);
+    } catch {
+      return null;
+    }
   }
 
   async delete(id: string): Promise<boolean> {
@@ -133,6 +151,7 @@ export class PrismaFormRepository implements IFormRepository {
         title: `${existing.title} (cópia)`,
         description: existing.description,
         closingMessage: existing.closingMessage,
+        pausedMessage: existing.pausedMessage,
         folderId: existing.folderId,
         isTemplate: false,
         status: "draft",

@@ -2,6 +2,7 @@ import type { SubmitResponseInput } from "./response.schema";
 import type { IFormRepository } from "../forms/form.repository.interface";
 import type { IRespondentRepository } from "./respondent.repository.interface";
 import type { IResponseRepository } from "./response.repository.interface";
+import { FormPausedError } from "./form-paused-error";
 
 export async function submitResponse(
   data: SubmitResponseInput,
@@ -13,7 +14,11 @@ export async function submitResponse(
   if (!form) {
     throw new Error("Form not found");
   }
-  if (form.status === "archived" || form.status === "paused") {
+  if (form.status === "paused") {
+    const pm = form.pausedMessage?.trim();
+    throw new FormPausedError(pm ? pm : null);
+  }
+  if (form.status === "archived") {
     throw new Error("Form does not accept responses");
   }
   let respondent;

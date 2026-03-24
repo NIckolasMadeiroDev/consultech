@@ -18,6 +18,7 @@ export async function createForm(
     title: data.title.trim(),
     description: data.description,
     closingMessage: data.closingMessage?.trim() || undefined,
+    pausedMessage: data.pausedMessage?.trim() || undefined,
     folderId: data.folderId ?? undefined,
     isTemplate: data.isTemplate ?? false,
     createdBy,

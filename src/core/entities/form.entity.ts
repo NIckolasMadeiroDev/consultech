@@ -5,6 +5,7 @@ export interface Form {
   title: string;
   description?: string;
   closingMessage?: string;
+  pausedMessage?: string;
   folderId?: string;
   folder?: string;
   isTemplate?: boolean;

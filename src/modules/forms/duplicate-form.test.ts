@@ -51,7 +51,19 @@ describe("duplicateForm", () => {
     };
     const questionRepo = {
       findByFormId: vi.fn().mockResolvedValue(questions),
-      createMany: vi.fn().mockResolvedValue([]),
+      createMany: vi.fn().mockImplementation((rows: Array<{ formId: string; text: string }>) =>
+        Promise.resolve(
+          rows.map((r, i) => ({
+            id: `nq-${i}`,
+            formId: r.formId,
+            type: "short_text" as const,
+            text: r.text,
+            required: true,
+            orderIndex: 0,
+          }))
+        )
+      ),
+      updateMany: vi.fn().mockResolvedValue([]),
     };
     const result = await duplicateForm(
       "form-1",

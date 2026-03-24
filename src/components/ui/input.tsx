@@ -53,11 +53,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             aria-invalid={hasError}
             aria-describedby={ariaDescribedBy}
-            className={`h-10 w-full rounded-lg border bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 ease-out placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder:text-neutral-500 ${
+            className={`h-10 w-full rounded-lg border bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 ease-out placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder:text-neutral-500 dark:focus-visible:ring-offset-[var(--background)] ${
               leftIcon ? "pl-10" : ""
             } ${rightIcon ? "pr-10" : ""} ${
               hasError
-                ? "border-error focus:border-error focus:ring-error/20"
+                ? "border-error focus-visible:border-error focus-visible:ring-2 focus-visible:ring-error/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[var(--background)]"
                 : "border-neutral-300 dark:border-neutral-600"
             } ${className}`}
             {...props}

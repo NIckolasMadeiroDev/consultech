@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/contexts/toast-context";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ChevronLeft } from "lucide-react";
 
 export default function FormResponsesPage() {
@@ -16,7 +17,16 @@ export default function FormResponsesPage() {
   const formId = params.id as string;
   const { user } = useAuth();
   const userId = user?.id ?? "anonymous";
-  const { data: responses, loading, error, refetch } = useFormResponses(formId, userId);
+  const [filterStart, setFilterStart] = useState("");
+  const [filterEnd, setFilterEnd] = useState("");
+  const [filterRespondent, setFilterRespondent] = useState("");
+  const [filterAnswer, setFilterAnswer] = useState("");
+  const { data: responses, loading, error, refetch } = useFormResponses(formId, userId, {
+    startDate: filterStart || undefined,
+    endDate: filterEnd || undefined,
+    respondentSearch: filterRespondent.trim() || undefined,
+    answerSearch: filterAnswer.trim() || undefined,
+  });
   const toast = useToast();
   const [exporting, setExporting] = useState<string | null>(null);
 
@@ -111,6 +121,66 @@ export default function FormResponsesPage() {
           </Button>
         </div>
       </div>
+      <Card className="mb-lg" padding="lg">
+        <p className="mb-3 text-small font-medium text-[var(--text-primary)]">Filtros e busca</p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label htmlFor="resp-filter-start" className="mb-1 block text-caption text-[var(--text-secondary)]">
+              Data inicial
+            </label>
+            <input
+              id="resp-filter-start"
+              type="date"
+              value={filterStart}
+              onChange={(e) => setFilterStart(e.target.value)}
+              className="h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 text-body text-[var(--text-primary)] dark:border-neutral-600"
+            />
+          </div>
+          <div>
+            <label htmlFor="resp-filter-end" className="mb-1 block text-caption text-[var(--text-secondary)]">
+              Data final
+            </label>
+            <input
+              id="resp-filter-end"
+              type="date"
+              value={filterEnd}
+              onChange={(e) => setFilterEnd(e.target.value)}
+              className="h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 text-body text-[var(--text-primary)] dark:border-neutral-600"
+            />
+          </div>
+          <Input
+            id="resp-filter-respondent"
+            label="Respondente"
+            value={filterRespondent}
+            onChange={(e) => setFilterRespondent(e.target.value)}
+            placeholder="Nome, e-mail, matrícula ou setor"
+            className="text-[var(--text-primary)]"
+          />
+          <Input
+            id="resp-filter-answer"
+            label="Texto nas respostas"
+            value={filterAnswer}
+            onChange={(e) => setFilterAnswer(e.target.value)}
+            placeholder="Busca no conteúdo das respostas"
+            className="text-[var(--text-primary)]"
+          />
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              setFilterStart("");
+              setFilterEnd("");
+              setFilterRespondent("");
+              setFilterAnswer("");
+            }}
+          >
+            Limpar filtros
+          </Button>
+        </div>
+      </Card>
       <ul className="flex flex-col gap-md">
         {responses?.map((r) => (
           <li key={r.id}>

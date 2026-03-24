@@ -15,6 +15,7 @@ vi.mock("@/infrastructure/database/repositories", () => ({
   getFormRepository: vi.fn(),
   getQuestionRepository: vi.fn(),
   getAuditLogRepository: vi.fn(),
+  getFormRevisionRepository: vi.fn(),
   getRespondentRepository: vi.fn(),
   getResponseRepository: vi.fn(),
 }));
@@ -28,6 +29,7 @@ import {
   getFormRepository,
   getQuestionRepository,
   getAuditLogRepository,
+  getFormRevisionRepository,
   getRespondentRepository,
   getResponseRepository,
 } from "@/infrastructure/database/repositories";
@@ -41,6 +43,9 @@ describe("Fluxo: formulários e respostas", () => {
 
   beforeEach(() => {
     vi.mocked(getAuditLogRepository).mockReturnValue({
+      create: vi.fn().mockResolvedValue({}),
+    } as never);
+    vi.mocked(getFormRevisionRepository).mockReturnValue({
       create: vi.fn().mockResolvedValue({}),
     } as never);
   });
@@ -130,15 +135,41 @@ describe("Fluxo: formulários e respostas", () => {
         id: formId,
         title: "Pesquisa Atualizada",
         description: "Desc",
-        status: "active",
+        status: "active" as const,
         version: 1,
         createdBy: "user-flow",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+      const before = {
+        id: formId,
+        title: "Antigo",
+        description: "Desc",
+        status: "draft" as const,
+        version: 1,
+        isTemplate: false,
+        allowAnonymous: false,
+        createdBy: "user-flow",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const afterV2 = { ...updated, version: 2 };
+      let findN = 0;
       vi.mocked(getFormRepository).mockReturnValue({
-        findById: vi.fn().mockResolvedValue({ id: formId }),
+        findById: vi.fn(async () => {
+          findN += 1;
+          if (findN === 1) return before;
+          if (findN === 2) return updated;
+          return afterV2;
+        }),
         update: vi.fn().mockResolvedValue(updated),
+        setVersion: vi.fn().mockResolvedValue(afterV2),
+      } as never);
+      vi.mocked(getQuestionRepository).mockReturnValue({
+        findByFormId: vi.fn().mockResolvedValue([]),
+        updateMany: vi.fn(),
+        createMany: vi.fn(),
+        deleteManyIds: vi.fn(),
       } as never);
       const req = new NextRequest(`http://localhost/api/forms/${formId}`, {
         method: "PATCH",
@@ -170,7 +201,19 @@ describe("Fluxo: formulários e respostas", () => {
       } as never);
       vi.mocked(getQuestionRepository).mockReturnValue({
         findByFormId: vi.fn().mockResolvedValue([{ id: questionId, formId, type: "short_text", text: "P1", required: false, orderIndex: 0 }]),
-        createMany: vi.fn().mockResolvedValue([]),
+        createMany: vi.fn().mockImplementation((rows: Array<{ formId: string }>) =>
+          Promise.resolve(
+            rows.map((r, i) => ({
+              id: `new-q-${i}`,
+              formId: r.formId,
+              type: "short_text" as const,
+              text: "P1",
+              required: false,
+              orderIndex: 0,
+            }))
+          )
+        ),
+        updateMany: vi.fn().mockResolvedValue([]),
       } as never);
       const req = new NextRequest(`http://localhost/api/forms/${formId}/duplicate`, {
         method: "POST",

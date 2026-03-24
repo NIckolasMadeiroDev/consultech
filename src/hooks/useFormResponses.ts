@@ -3,7 +3,16 @@
 import { useState, useEffect, useCallback } from "react";
 import * as api from "@/lib/api";
 
-export function useFormResponses(formId: string | null, userId?: string) {
+export function useFormResponses(
+  formId: string | null,
+  userId?: string,
+  filters?: {
+    startDate?: string;
+    endDate?: string;
+    respondentSearch?: string;
+    answerSearch?: string;
+  }
+) {
   const [data, setData] = useState<Array<{
     id: string;
     submittedAt: string;
@@ -22,7 +31,7 @@ export function useFormResponses(formId: string | null, userId?: string) {
     setLoading(true);
     setError(null);
     try {
-      const list = await api.fetchFormResponses(formId, userId);
+      const list = await api.fetchFormResponses(formId, userId, filters);
       setData(list);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error");
@@ -30,7 +39,7 @@ export function useFormResponses(formId: string | null, userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [formId, userId]);
+  }, [formId, userId, filters?.startDate, filters?.endDate, filters?.respondentSearch, filters?.answerSearch]);
 
   useEffect(() => {
     refetch();

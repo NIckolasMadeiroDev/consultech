@@ -5,6 +5,16 @@ const getBaseUrl = (): string => {
   return globalThis.window.location.origin;
 };
 
+export class FormSubmitPausedError extends Error {
+  readonly pausedMessage: string | null;
+
+  constructor(message: string, pausedMessage: string | null) {
+    super(message);
+    this.name = "FormSubmitPausedError";
+    this.pausedMessage = pausedMessage;
+  }
+}
+
 function getHeaders(userId?: string): HeadersInit {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (userId) {
@@ -56,6 +66,27 @@ export async function fetchForm(id: string) {
   return res.json();
 }
 
+export async function fetchFormRevisions(formId: string, userId?: string) {
+  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/revisions`, {
+    headers: getHeaders(userId),
+  });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Form not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch revisions");
+  }
+  return res.json() as Promise<
+    Array<{
+      id: string;
+      version: number;
+      summary: string;
+      details: unknown;
+      createdAt: string;
+      editedByName: string | null;
+    }>
+  >;
+}
+
 export async function fetchFormBySlug(slug: string) {
   const res = await fetch(`${getBaseUrl()}/api/forms/by-slug/${encodeURIComponent(slug)}`, {
     headers: getHeaders(),
@@ -73,6 +104,7 @@ export async function createForm(
     title: string;
     description?: string;
     closingMessage?: string;
+    pausedMessage?: string;
     folderId?: string | null;
     isTemplate?: boolean;
     slug?: string;
@@ -100,6 +132,7 @@ export async function updateForm(
     title?: string;
     description?: string;
     closingMessage?: string | null;
+    pausedMessage?: string | null;
     folderId?: string | null;
     isTemplate?: boolean;
     status?: string;
@@ -149,8 +182,26 @@ export async function duplicateForm(id: string, userId?: string) {
   return res.json();
 }
 
-export async function fetchFormResponses(formId: string, userId?: string) {
-  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/responses`, {
+export async function fetchFormResponses(
+  formId: string,
+  userId?: string,
+  params?: {
+    startDate?: string;
+    endDate?: string;
+    respondentSearch?: string;
+    answerSearch?: string;
+  }
+) {
+  const url = new URL(`${getBaseUrl()}/api/forms/${formId}/responses`);
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  if (params?.respondentSearch?.trim()) {
+    url.searchParams.set("respondentSearch", params.respondentSearch.trim());
+  }
+  if (params?.answerSearch?.trim()) {
+    url.searchParams.set("answerSearch", params.answerSearch.trim());
+  }
+  const res = await fetch(url.toString(), {
     headers: getHeaders(userId),
   });
   if (!res.ok) {
@@ -324,7 +375,11 @@ export async function submitResponse(data: {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error ?? "Failed to submit response");
+    const body = err as { error?: string; pausedMessage?: string | null };
+    if (res.status === 403 && body.error === "Form is paused") {
+      throw new FormSubmitPausedError(body.error, body.pausedMessage ?? null);
+    }
+    throw new Error(body.error ?? "Failed to submit response");
   }
   return res.json();
 }

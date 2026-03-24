@@ -5,6 +5,7 @@ vi.mock("@/infrastructure/database/repositories", () => ({
   getFormRepository: vi.fn(),
   getQuestionRepository: vi.fn(),
   getAuditLogRepository: vi.fn(),
+  getFormRevisionRepository: vi.fn(),
 }));
 
 vi.mock("@/lib/auth-session", () => ({
@@ -16,6 +17,7 @@ import {
   getFormRepository,
   getQuestionRepository,
   getAuditLogRepository,
+  getFormRevisionRepository,
 } from "@/infrastructure/database/repositories";
 
 describe("GET /api/forms", () => {
@@ -77,6 +79,9 @@ describe("POST /api/forms", () => {
       ]),
     } as never);
     vi.mocked(getAuditLogRepository).mockReturnValue({
+      create: vi.fn().mockResolvedValue({}),
+    } as never);
+    vi.mocked(getFormRevisionRepository).mockReturnValue({
       create: vi.fn().mockResolvedValue({}),
     } as never);
   });

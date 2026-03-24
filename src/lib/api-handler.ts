@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
+import { FormPausedError } from "@/modules/responses/form-paused-error";
 
 export async function apiHandler<T>(
   fn: () => Promise<T>
@@ -19,6 +20,15 @@ export async function apiHandler<T>(
       return Response.json(
         { error: "Schema do banco desatualizado. Execute: npx prisma db push" },
         { status: 503 }
+      );
+    }
+    if (error instanceof FormPausedError) {
+      return Response.json(
+        {
+          error: "Form is paused",
+          pausedMessage: error.pausedMessage,
+        },
+        { status: 403 }
       );
     }
     const message = error instanceof Error ? error.message : "Internal error";

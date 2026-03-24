@@ -5,6 +5,7 @@ export interface CreateFormData {
   title: string;
   description?: string;
   closingMessage?: string;
+  pausedMessage?: string;
   folderId?: string;
   isTemplate?: boolean;
   createdBy: string;
@@ -19,6 +20,7 @@ export interface IFormRepository {
   findBySlug(slug: string): Promise<Form | null>;
   findByCreatedBy(createdBy: string): Promise<Form[]>;
   update(id: string, data: UpdateFormInput): Promise<Form | null>;
+  setVersion(id: string, version: number): Promise<Form | null>;
   delete(id: string): Promise<boolean>;
   duplicate(id: string, createdBy: string): Promise<Form | null>;
 }

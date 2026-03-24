@@ -60,6 +60,37 @@ export default function RespondFormPage() {
     );
   }
 
+  if (form.status === "paused") {
+    const raw = form.pausedMessage?.trim();
+    const msg =
+      raw && raw.length > 0
+        ? raw
+        : "Este formulário está pausado no momento. Voltamos em breve.";
+    return (
+      <main className="flex min-h-screen flex-col bg-[var(--background)]">
+        <header className="flex items-center justify-between gap-4 border-b border-neutral-200 px-4 py-3 sm:px-6 dark:border-neutral-700">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            <ChevronLeft className="h-4 w-4" aria-hidden />
+            Voltar
+          </Link>
+          <ThemeToggle />
+        </header>
+        <div className="mx-auto flex w-full max-w-lg flex-1 flex-col items-center justify-center p-4 sm:p-6">
+          <Card className="w-full text-center" padding="lg">
+            <p className="text-body font-medium text-[var(--text-primary)]">Formulário pausado</p>
+            <p className="mt-3 whitespace-pre-wrap text-body text-[var(--text-secondary)]">{msg}</p>
+            <Link href="/" className="mt-6 inline-block">
+              <Button variant="primary">Voltar ao início</Button>
+            </Link>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
   if (form.status !== "active") {
     return (
       <main className="flex min-h-screen flex-col bg-[var(--background)]">

@@ -3,7 +3,12 @@ import { apiHandler } from "@/lib/api-handler";
 import { createForm } from "@/modules/forms";
 import { createFormSchema } from "@/modules/forms/form.schema";
 import { formListDTO } from "@/modules/forms/form.dto";
-import { getFormRepository, getQuestionRepository, getAuditLogRepository } from "@/infrastructure/database/repositories";
+import {
+  getFormRepository,
+  getQuestionRepository,
+  getAuditLogRepository,
+  getFormRevisionRepository,
+} from "@/infrastructure/database/repositories";
 import { getCreatedBy, getSession } from "@/lib/auth-session";
 
 export async function GET(req: NextRequest) {
@@ -26,12 +31,20 @@ export async function POST(req: NextRequest) {
     const formRepo = getFormRepository();
     const questionRepo = getQuestionRepository();
     const form = await createForm(data, createdBy, formRepo, questionRepo);
+    const sessionUserId = (await getSession(req))?.id ?? createdBy;
+    const revisionRepo = getFormRevisionRepository();
+    await revisionRepo.create({
+      formId: form.id,
+      version: form.version,
+      editedById: sessionUserId,
+      summary: "Formulário criado",
+    });
     const auditRepo = getAuditLogRepository();
     await auditRepo.create({
       action: "form.created",
       entityType: "form",
       entityId: form.id,
-      userId: (await getSession(req))?.id ?? createdBy,
+      userId: sessionUserId,
     });
     return form;
   });

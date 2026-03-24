@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/contexts/toast-context";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -20,12 +21,18 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Consultech - Gestão de Formulários",
   description: "Sistema de gestão de formulários internos",
+  appleWebApp: {
+    capable: true,
+    title: "Consultech",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: "#4F46E5",
 };
 
 export default function RootLayout({
@@ -38,7 +45,10 @@ export default function RootLayout({
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
         <ThemeProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <ToastProvider>
+              {children}
+              <PwaInstallPrompt />
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

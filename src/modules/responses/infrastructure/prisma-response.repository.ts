@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 import type { Response, Answer } from "@/core/entities";
 import type { ResponseFilters } from "@/types";
 import type { SubmitResponseInput, IResponseRepository } from "../response.repository.interface";
@@ -31,30 +31,52 @@ function toAnswerEntity(row: {
   };
 }
 
-function buildWhere(
-  formId: string,
-  filters?: ResponseFilters
-): { formId: string; respondentId?: string; submittedAt?: object } {
-  const where: { formId: string; respondentId?: string; submittedAt?: object } = {
-    formId,
-  };
-  if (filters?.respondentId) {
-    where.respondentId = filters.respondentId;
-  }
-  if (filters?.startDate ?? filters?.endDate) {
-    where.submittedAt = {};
-    if (filters.startDate) {
-      (where.submittedAt as { gte?: Date }).gte = filters.startDate;
-    }
-    if (filters.endDate) {
-      (where.submittedAt as { lte?: Date }).lte = filters.endDate;
-    }
-  }
-  return where;
-}
-
 export class PrismaResponseRepository implements IResponseRepository {
   constructor(private readonly prisma: PrismaClient) {}
+
+  private async resolveWhere(
+    formId: string,
+    filters?: ResponseFilters
+  ): Promise<Prisma.ResponseWhereInput> {
+    const where: Prisma.ResponseWhereInput = { formId };
+    if (filters?.respondentId) {
+      where.respondentId = filters.respondentId;
+    }
+    if (filters?.startDate ?? filters?.endDate) {
+      where.submittedAt = {};
+      if (filters.startDate) {
+        (where.submittedAt as { gte?: Date }).gte = filters.startDate;
+      }
+      if (filters.endDate) {
+        (where.submittedAt as { lte?: Date }).lte = filters.endDate;
+      }
+    }
+    const rs = filters?.respondentSearch?.trim();
+    if (rs) {
+      where.respondent = {
+        OR: [
+          { name: { contains: rs, mode: "insensitive" } },
+          { email: { contains: rs, mode: "insensitive" } },
+          { employeeId: { contains: rs, mode: "insensitive" } },
+          { department: { contains: rs, mode: "insensitive" } },
+        ],
+      };
+    }
+    const av = filters?.answerValue?.trim();
+    if (av) {
+      const pattern = `%${av}%`;
+      const rows = await this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT DISTINCT r.id
+        FROM responses r
+        INNER JOIN answers a ON a.response_id = r.id
+        WHERE r.form_id = ${formId}::uuid
+          AND a.value::text ILIKE ${pattern}
+      `;
+      const ids = rows.map((r) => r.id);
+      where.id = { in: ids.length > 0 ? ids : [] };
+    }
+    return where;
+  }
 
   async create(data: SubmitResponseInput): Promise<Response> {
     const response = await this.prisma.response.create({
@@ -78,7 +100,7 @@ export class PrismaResponseRepository implements IResponseRepository {
   }
 
   async findByFormId(formId: string, filters?: ResponseFilters): Promise<Response[]> {
-    const where = buildWhere(formId, filters);
+    const where = await this.resolveWhere(formId, filters);
     const rows = await this.prisma.response.findMany({
       where,
       orderBy: { submittedAt: "desc" },
@@ -90,7 +112,7 @@ export class PrismaResponseRepository implements IResponseRepository {
     formId: string,
     opts: { filters?: ResponseFilters; page: number; limit: number }
   ): Promise<{ data: Response[]; total: number }> {
-    const where = buildWhere(formId, opts.filters);
+    const where = await this.resolveWhere(formId, opts.filters);
     const skip = Math.max(0, (opts.page - 1) * opts.limit);
     const take = Math.min(100, Math.max(1, opts.limit));
     const [total, rows] = await Promise.all([
@@ -116,7 +138,7 @@ export class PrismaResponseRepository implements IResponseRepository {
     formId: string,
     filters?: ResponseFilters
   ): Promise<{ count: number; lastSubmittedAt: Date | null }> {
-    const where = buildWhere(formId, filters);
+    const where = await this.resolveWhere(formId, filters);
     const [count, last] = await Promise.all([
       this.prisma.response.count({ where }),
       this.prisma.response.findFirst({

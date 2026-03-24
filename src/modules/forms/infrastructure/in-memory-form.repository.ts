@@ -22,6 +22,7 @@ export class InMemoryFormRepository implements IFormRepository {
       title: data.title,
       description: data.description,
       closingMessage: data.closingMessage,
+      pausedMessage: data.pausedMessage,
       ...folderFields,
       isTemplate: data.isTemplate ?? false,
       status: data.status ?? "draft",
@@ -55,7 +56,14 @@ export class InMemoryFormRepository implements IFormRepository {
     if (!existing) return null;
     if (existing.slug) slugIndex.delete(existing.slug);
     const slug = data.slug === undefined ? existing.slug : (data.slug ?? undefined);
-    const { questions: _omitQuestions, closingMessage, folderId, isTemplate, ...restData } = data;
+    const {
+      questions: _omitQuestions,
+      closingMessage,
+      pausedMessage,
+      folderId,
+      isTemplate,
+      ...restData
+    } = data;
     void _omitQuestions;
     let folderFields: Pick<Form, "folderId" | "folder"> = {};
     if (folderId !== undefined) {
@@ -70,6 +78,8 @@ export class InMemoryFormRepository implements IFormRepository {
       ...folderFields,
       closingMessage:
         closingMessage === undefined ? existing.closingMessage : (closingMessage ?? undefined),
+      pausedMessage:
+        pausedMessage === undefined ? existing.pausedMessage : (pausedMessage ?? undefined),
       isTemplate: isTemplate === undefined ? existing.isTemplate : isTemplate,
       slug,
       updatedAt: new Date(),
@@ -77,6 +87,14 @@ export class InMemoryFormRepository implements IFormRepository {
     if (updated.slug) slugIndex.set(updated.slug, id);
     store.set(id, updated);
     return updated;
+  }
+
+  async setVersion(id: string, version: number): Promise<Form | null> {
+    const existing = store.get(id);
+    if (!existing) return null;
+    const next = { ...existing, version, updatedAt: new Date() };
+    store.set(id, next);
+    return next;
   }
 
   async delete(id: string): Promise<boolean> {
@@ -95,6 +113,7 @@ export class InMemoryFormRepository implements IFormRepository {
       title: `${existing.title} (cópia)`,
       description: existing.description,
       closingMessage: existing.closingMessage,
+      pausedMessage: existing.pausedMessage,
       ...folderFields,
       isTemplate: false,
       status: "draft",

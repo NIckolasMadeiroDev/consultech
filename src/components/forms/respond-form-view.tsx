@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
+import { FormSubmitPausedError } from "@/lib/api";
 import { CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 const inputBaseClass =
-  "h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600";
+  "h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
 const textareaClass =
-  "mt-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2.5 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600";
+  "mt-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2.5 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
 const radioCheckClass =
-  "h-4 w-4 rounded border-neutral-300 text-primary-600 focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:border-neutral-600";
+  "h-4 w-4 shrink-0 rounded border-neutral-300 text-primary-600 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
 
 export type AnswerValue = string | number | boolean | string[];
 
@@ -48,6 +49,71 @@ export function isQuestionVisible(
   return true;
 }
 
+function draftStorageKey(formId: string) {
+  return `consultech-form-draft:${formId}`;
+}
+
+type StoredDraft = {
+  v: 1;
+  name: string;
+  email: string;
+  employeeId: string;
+  department: string;
+  answers: Record<string, AnswerValue>;
+};
+
+function isRequiredFilled(
+  q: RespondFormQuestion,
+  answers: Record<string, AnswerValue>
+): boolean {
+  const v = answers[q.id];
+  switch (q.type) {
+    case "short_text":
+    case "long_text":
+      return typeof v === "string" && v.trim() !== "";
+    case "number":
+      return typeof v === "number" && !Number.isNaN(v);
+    case "date":
+      return typeof v === "string" && v.trim() !== "";
+    case "yes_no":
+      return v === true || v === false;
+    case "multiple_choice":
+    case "dropdown":
+      return typeof v === "string" && v.trim() !== "";
+    case "checkbox":
+      return Array.isArray(v) && v.length > 0;
+    case "scale":
+      return typeof v === "number" && !Number.isNaN(v);
+    default:
+      return true;
+  }
+}
+
+function buildSectionBlocks(
+  visibleQuestions: RespondFormQuestion[]
+): { title: string; questions: RespondFormQuestion[] }[] {
+  const blocks: { title: string; questions: RespondFormQuestion[] }[] = [];
+  let pendingTitle = "Geral";
+  const agg: RespondFormQuestion[] = [];
+  for (const q of visibleQuestions) {
+    if (q.type === "section") {
+      if (agg.length > 0) {
+        blocks.push({ title: pendingTitle, questions: [...agg] });
+        agg.length = 0;
+      }
+      pendingTitle = q.text;
+    } else {
+      agg.push(q);
+    }
+  }
+  if (agg.length > 0) {
+    blocks.push({ title: pendingTitle, questions: agg });
+  } else if (blocks.length === 0) {
+    blocks.push({ title: pendingTitle, questions: [] });
+  }
+  return blocks;
+}
+
 export function RespondFormView({
   formId,
   form,
@@ -68,6 +134,7 @@ export function RespondFormView({
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [errTargetQuestionId, setErrTargetQuestionId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [employeeId, setEmployeeId] = useState("");
@@ -84,11 +151,147 @@ export function RespondFormView({
     [sortedQuestions, answers]
   );
 
+  const draftStateRef = useRef({
+    name: "",
+    email: "",
+    employeeId: "",
+    department: "",
+    answers: {} as Record<string, AnswerValue>,
+  });
+  const [draftHydrated, setDraftHydrated] = useState(false);
+
+  useEffect(() => {
+    draftStateRef.current = { name, email, employeeId, department, answers };
+  }, [name, email, employeeId, department, answers]);
+
+  const progress = useMemo(() => {
+    const blocks = buildSectionBlocks(visibleQuestions);
+    const answerable = visibleQuestions.filter((q) => q.type !== "section");
+    const requiredQs = answerable.filter((q) => q.required);
+    const filled = requiredQs.filter((q) => isRequiredFilled(q, answers)).length;
+    const totalReq = requiredQs.length;
+    const pct = totalReq === 0 ? 100 : Math.min(100, Math.round((100 * filled) / totalReq));
+    const allReq = visibleQuestions.filter((q) => q.type !== "section" && q.required);
+    const allDone =
+      allReq.length === 0 || allReq.every((q) => isRequiredFilled(q, answers));
+    let currentIdx = 0;
+    if (blocks.length > 0) {
+      if (allDone) {
+        currentIdx = blocks.length - 1;
+      } else {
+        const idx = blocks.findIndex((b) => {
+          const req = b.questions.filter((q) => q.required);
+          return req.length > 0 && req.some((q) => !isRequiredFilled(q, answers));
+        });
+        currentIdx = idx === -1 ? 0 : idx;
+      }
+    }
+    const cur = blocks[currentIdx] ?? blocks[0];
+    const sectionTitle = cur?.title ?? "Geral";
+    return {
+      filled,
+      totalReq,
+      pct,
+      sectionTitle,
+      sectionIndex: currentIdx + 1,
+      sectionTotal: Math.max(1, blocks.length),
+    };
+  }, [visibleQuestions, answers]);
+
+  useEffect(() => {
+    if (preview) {
+      setDraftHydrated(true);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(draftStorageKey(formId));
+      if (raw) {
+        const d = JSON.parse(raw) as StoredDraft;
+        if (d?.v === 1 && d.answers && typeof d.answers === "object") {
+          setAnswers(d.answers);
+          if (!form.allowAnonymous) {
+            setName(typeof d.name === "string" ? d.name : "");
+            setEmail(typeof d.email === "string" ? d.email : "");
+            setEmployeeId(typeof d.employeeId === "string" ? d.employeeId : "");
+            setDepartment(typeof d.department === "string" ? d.department : "");
+          }
+        }
+      }
+    } catch {
+    }
+    setDraftHydrated(true);
+  }, [formId, preview, form.allowAnonymous]);
+
+  useEffect(() => {
+    if (preview || !draftHydrated) return;
+    const t = window.setTimeout(() => {
+      try {
+        const payload: StoredDraft = {
+          v: 1,
+          name,
+          email,
+          employeeId,
+          department,
+          answers,
+        };
+        localStorage.setItem(draftStorageKey(formId), JSON.stringify(payload));
+      } catch {
+      }
+    }, 400);
+    return () => window.clearTimeout(t);
+  }, [name, email, employeeId, department, answers, formId, preview, draftHydrated]);
+
+  const hasUnsubmittedContent =
+    Object.keys(answers).length > 0 ||
+    (!form.allowAnonymous &&
+      [name, email, employeeId, department].some((x) => x.trim() !== ""));
+
+  useEffect(() => {
+    if (preview || submitted) return;
+    const flushDraft = () => {
+      try {
+        const p = draftStateRef.current;
+        const payload: StoredDraft = {
+          v: 1,
+          name: p.name,
+          email: p.email,
+          employeeId: p.employeeId,
+          department: p.department,
+          answers: p.answers,
+        };
+        localStorage.setItem(draftStorageKey(formId), JSON.stringify(payload));
+      } catch {
+      }
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!hasUnsubmittedContent) return;
+      flushDraft();
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushDraft();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [preview, submitted, formId, hasUnsubmittedContent]);
+
   const handleCheckboxChange = (questionId: string, option: string, checked: boolean) => {
     setAnswers((prev) => {
       const current = (prev[questionId] as string[]) ?? [];
       const next = checked ? [...current, option] : current.filter((x) => x !== option);
       return { ...prev, [questionId]: next };
+    });
+    setErrTargetQuestionId((tid) => {
+      if (tid === questionId) {
+        setErr(null);
+        return null;
+      }
+      return tid;
     });
   };
 
@@ -109,12 +312,14 @@ export function RespondFormView({
         const v = (answers[q.id] as string[]) ?? [];
         if (v.length === 0) {
           setErr("Marque ao menos uma opção em cada pergunta obrigatória de múltipla escolha (caixas).");
+          setErrTargetQuestionId(q.id);
           globalThis.document.getElementById(`${q.id}-cb-0`)?.focus();
           return;
         }
       }
     }
     setErr(null);
+    setErrTargetQuestionId(null);
     if (preview) {
       setSending(true);
       await new Promise((r) => setTimeout(r, 0));
@@ -147,8 +352,22 @@ export function RespondFormView({
       }
       await submitResponse(payload);
       setSubmitted(true);
+      try {
+        localStorage.removeItem(draftStorageKey(formId));
+      } catch {
+      }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Erro ao enviar");
+      setErrTargetQuestionId(null);
+      if (e instanceof FormSubmitPausedError) {
+        const custom = e.pausedMessage?.trim();
+        setErr(
+          custom && custom.length > 0
+            ? custom
+            : "Este formulário está pausado no momento."
+        );
+      } else {
+        setErr(e instanceof Error ? e.message : "Erro ao enviar");
+      }
       queueMicrotask(() => {
         submitErrorRef.current?.focus();
         submitErrorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -212,13 +431,52 @@ export function RespondFormView({
         )}
       </header>
 
+      {draftHydrated && (
+        <div className="mb-lg space-y-2" aria-live="polite">
+          <div className="flex flex-col gap-1 text-small text-[var(--text-secondary)] sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <span>
+              {progress.totalReq === 0
+                ? "Nenhuma pergunta obrigatória nesta etapa"
+                : `Obrigatórias: ${progress.filled} de ${progress.totalReq}`}
+            </span>
+            <span className="truncate sm:max-w-[55%]" title={progress.sectionTitle}>
+              Seção {progress.sectionIndex}/{progress.sectionTotal}: {progress.sectionTitle}
+            </span>
+          </div>
+          <div
+            className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700"
+            role="progressbar"
+            aria-valuenow={progress.totalReq === 0 ? 1 : progress.filled}
+            aria-valuemin={0}
+            aria-valuemax={progress.totalReq === 0 ? 1 : progress.totalReq}
+            aria-label="Progresso das perguntas obrigatórias respondidas"
+          >
+            <div
+              className="h-full rounded-full bg-primary-600 transition-[width] duration-300 ease-out"
+              style={{ width: `${progress.pct}%` }}
+            />
+          </div>
+          {!preview && (
+            <p className="text-small text-[var(--text-secondary)]">
+              Rascunho salvo neste dispositivo. Ao sair ou fechar a aba, o navegador pode avisar se ainda não
+              tiver enviado.
+            </p>
+          )}
+        </div>
+      )}
+
       <Card padding="lg" className="border-neutral-200 dark:border-neutral-700">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6"
+          aria-describedby={err ? "form-submit-error" : undefined}
+        >
           {err && (
             <div
+              id="form-submit-error"
               ref={submitErrorRef}
               tabIndex={-1}
-              className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-small text-error outline-none focus:ring-2 focus:ring-error/40"
+              className="rounded-lg border border-error/30 bg-error/10 px-3 py-2 text-small text-error outline-none focus-visible:ring-2 focus-visible:ring-error focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[var(--background)]"
               role="alert"
               aria-live="assertive"
             >
@@ -312,8 +570,17 @@ export function RespondFormView({
                         </legend>
                       );
 
+                      const fieldInvalid = Boolean(err && errTargetQuestionId === q.id);
+                      const fieldErrorRef =
+                        fieldInvalid && err ? "form-submit-error" : undefined;
+
                       return (
-                        <fieldset className="m-0 min-w-0 border-0 p-0" aria-required={q.required}>
+                        <fieldset
+                          className="m-0 min-w-0 border-0 p-0"
+                          aria-required={q.required}
+                          aria-invalid={fieldInvalid}
+                          aria-errormessage={fieldErrorRef}
+                        >
                           {legend}
 
                           {q.type === "short_text" && (
@@ -326,6 +593,8 @@ export function RespondFormView({
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
+                              aria-invalid={fieldInvalid}
+                              aria-errormessage={fieldErrorRef}
                             />
                           )}
                           {q.type === "long_text" && (
@@ -338,10 +607,17 @@ export function RespondFormView({
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
+                              aria-invalid={fieldInvalid}
+                              aria-errormessage={fieldErrorRef}
                             />
                           )}
                           {q.type === "yes_no" && (
-                            <div className="mt-2 flex flex-wrap gap-4">
+                            <div
+                              className="mt-2 flex flex-wrap gap-4"
+                              role="radiogroup"
+                              aria-labelledby={legendId}
+                              aria-required={q.required}
+                            >
                               <label className="flex cursor-pointer items-center gap-2 text-body text-[var(--text-primary)]">
                                 <input
                                   type="radio"
@@ -384,6 +660,8 @@ export function RespondFormView({
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
+                              aria-invalid={fieldInvalid}
+                              aria-errormessage={fieldErrorRef}
                             />
                           )}
                           {q.type === "date" && (
@@ -396,6 +674,8 @@ export function RespondFormView({
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
+                              aria-invalid={fieldInvalid}
+                              aria-errormessage={fieldErrorRef}
                             />
                           )}
                           {q.type === "scale" && (
@@ -409,14 +689,15 @@ export function RespondFormView({
                                 onChange={(e) =>
                                   setAnswers((a) => ({ ...a, [q.id]: Number(e.target.value) }))
                                 }
-                                className="w-full accent-primary-600"
+                                className="w-full rounded-md accent-primary-600 outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[var(--background)]"
                                 required={q.required}
                                 aria-labelledby={legendId}
                                 aria-valuemin={q.scaleMin ?? 0}
                                 aria-valuemax={q.scaleMax ?? 5}
                                 aria-valuenow={(answers[q.id] as number) ?? (q.scaleMin ?? 0)}
                                 aria-valuetext={`Valor ${(answers[q.id] as number) ?? (q.scaleMin ?? 0)} na escala de ${q.scaleMin ?? 0} a ${q.scaleMax ?? 5}`}
-                                aria-required={q.required}
+                                aria-invalid={fieldInvalid}
+                                aria-errormessage={fieldErrorRef}
                               />
                               <span className="mt-1 block text-small text-[var(--text-secondary)]" aria-hidden="true">
                                 {(answers[q.id] as number) ?? (q.scaleMin ?? 0)}
@@ -424,7 +705,12 @@ export function RespondFormView({
                             </div>
                           )}
                           {q.type === "multiple_choice" && (
-                            <div className="mt-2 space-y-2">
+                            <div
+                              className="mt-2 space-y-2"
+                              role="radiogroup"
+                              aria-labelledby={legendId}
+                              aria-required={q.required}
+                            >
                               {(q.options ?? []).map((opt, oi) => (
                                 <label
                                   key={`${q.id}-mc-${oi}`}
@@ -455,6 +741,8 @@ export function RespondFormView({
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
+                              aria-invalid={fieldInvalid}
+                              aria-errormessage={fieldErrorRef}
                             >
                               <option value="">Selecione…</option>
                               {(q.options ?? []).map((opt, oi) => (
@@ -465,7 +753,7 @@ export function RespondFormView({
                             </select>
                           )}
                           {q.type === "checkbox" && (
-                            <div className="mt-2 space-y-2">
+                            <div className="mt-2 space-y-2" role="group" aria-labelledby={legendId}>
                               {(q.options ?? []).map((opt, oi) => (
                                 <div key={`${q.id}-cb-${oi}`} className="flex items-center gap-2">
                                   <input

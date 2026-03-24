@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { submitResponse } from "./submit-response";
+import { FormPausedError } from "./form-paused-error";
 
 describe("submitResponse", () => {
   it("deve lançar erro quando formulário não existe", async () => {
@@ -18,6 +19,33 @@ describe("submitResponse", () => {
         responseRepo as never
       )
     ).rejects.toThrow("Form not found");
+  });
+
+  it("deve lançar FormPausedError quando formulário está pausado", async () => {
+    const formRepo = {
+      findById: vi.fn().mockResolvedValue({
+        id: "form-1",
+        status: "paused",
+        pausedMessage: "Voltamos segunda",
+      }),
+    };
+    let err: unknown;
+    try {
+      await submitResponse(
+        {
+          formId: "form-1",
+          respondent: { name: "João", email: "joao@empresa.com" },
+          answers: [{ questionId: "q1", value: "R1" }],
+        },
+        formRepo as never,
+        {} as never,
+        {} as never
+      );
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(FormPausedError);
+    expect((err as FormPausedError).pausedMessage).toBe("Voltamos segunda");
   });
 
   it("deve lançar erro quando formulário está arquivado", async () => {

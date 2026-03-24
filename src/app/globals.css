@@ -35,4 +35,8 @@
   body {
     @apply bg-[var(--background)] text-[var(--text-primary)] transition-colors duration-150 ease-out;
   }
+
+  a:focus-visible {
+    @apply rounded-sm outline outline-2 outline-offset-2 outline-primary-600;
+  }
 }

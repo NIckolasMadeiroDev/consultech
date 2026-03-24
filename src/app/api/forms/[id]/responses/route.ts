@@ -1,12 +1,12 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { getFormRepository, getResponseRepository, getRespondentRepository } from "@/infrastructure/database/repositories";
+import type { ResponseFilters } from "@/types";
 
-function parseFilters(url: URL): { startDate?: Date; endDate?: Date } | undefined {
+function parseFilters(url: URL): ResponseFilters | undefined {
+  const filters: ResponseFilters = {};
   const start = url.searchParams.get("startDate");
   const end = url.searchParams.get("endDate");
-  if (!start && !end) return undefined;
-  const filters: { startDate?: Date; endDate?: Date } = {};
   if (start) {
     const d = new Date(start);
     if (!Number.isNaN(d.getTime())) filters.startDate = d;
@@ -15,6 +15,10 @@ function parseFilters(url: URL): { startDate?: Date; endDate?: Date } | undefine
     const d = new Date(end);
     if (!Number.isNaN(d.getTime())) filters.endDate = d;
   }
+  const respondentSearch = url.searchParams.get("respondentSearch")?.trim();
+  if (respondentSearch) filters.respondentSearch = respondentSearch;
+  const answerSearch = url.searchParams.get("answerSearch")?.trim();
+  if (answerSearch) filters.answerValue = answerSearch;
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
 

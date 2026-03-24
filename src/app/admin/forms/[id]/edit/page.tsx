@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   GripVertical,
   FolderPlus,
+  History,
 } from "lucide-react";
 import { FormShareActivePanel } from "@/components/admin/form-share-active-panel";
 
@@ -90,6 +91,7 @@ export default function EditFormPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [closingMessage, setClosingMessage] = useState("");
+  const [pausedMessage, setPausedMessage] = useState("");
   const [folderId, setFolderId] = useState<string | null>(null);
   const [folders, setFolders] = useState<Array<{ id: string; name: string }>>([]);
   const [newFolderOpen, setNewFolderOpen] = useState(false);
@@ -111,6 +113,18 @@ export default function EditFormPage() {
   const [optionDrag, setOptionDrag] = useState<{ qIndex: number; oIndex: number } | null>(null);
   const [optionDragOver, setOptionDragOver] = useState<{ qIndex: number; oIndex: number } | null>(null);
   const nextLocalKeyRef = useRef(0);
+  const [formVersion, setFormVersion] = useState(1);
+  const [revisions, setRevisions] = useState<
+    Array<{
+      id: string;
+      version: number;
+      summary: string;
+      details: unknown;
+      createdAt: string;
+      editedByName: string | null;
+    }>
+  >([]);
+  const [revisionOpenId, setRevisionOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -119,11 +133,13 @@ export default function EditFormPage() {
         setTitle(form.title);
         setDescription(form.description ?? "");
         setClosingMessage(form.closingMessage ?? "");
+        setPausedMessage(form.pausedMessage ?? "");
         setFolderId(form.folderId ?? null);
         setIsTemplate(Boolean(form.isTemplate));
         setStatus(form.status);
         setSlug(form.slug ?? "");
         setAllowAnonymous(form.allowAnonymous ?? false);
+        setFormVersion(typeof form.version === "number" ? form.version : 1);
         let seq = 0;
         setQuestions(
           (form.questions ?? []).map((q: QuestionRow & { id: string }) => ({
@@ -143,6 +159,7 @@ export default function EditFormPage() {
       api.fetchFormResponses(id, userId).then((list: unknown[]) => {
         setResponseCount(list?.length ?? 0);
       }).catch(() => setResponseCount(0)),
+      api.fetchFormRevisions(id, userId).then(setRevisions).catch(() => setRevisions([])),
     ])
       .catch((e) => {
         const msg = e instanceof Error ? e.message : "Erro";
@@ -295,12 +312,13 @@ export default function EditFormPage() {
       setSaving(true);
       const effectiveStatus = (statusOverride ?? status) as "draft" | "active" | "archived" | "paused";
       try {
-        await api.updateForm(
+        const saved = await api.updateForm(
           id,
           {
             title: title.trim() || "Sem título",
             description: description.trim() || undefined,
             closingMessage: closingMessage.trim() || null,
+            pausedMessage: pausedMessage.trim() || null,
             folderId,
             isTemplate,
             status: effectiveStatus,
@@ -322,6 +340,10 @@ export default function EditFormPage() {
           },
           userId
         );
+        if (typeof (saved as { version?: number }).version === "number") {
+          setFormVersion((saved as { version: number }).version);
+        }
+        void api.fetchFormRevisions(id, userId).then(setRevisions).catch(() => {});
         if (statusOverride !== undefined) setStatus(statusOverride);
         toast(
           statusOverride === "active"
@@ -343,6 +365,7 @@ export default function EditFormPage() {
       title,
       description,
       closingMessage,
+      pausedMessage,
       folderId,
       isTemplate,
       status,
@@ -418,6 +441,67 @@ export default function EditFormPage() {
           />
         </div>
       ) : null}
+
+      <Card className="mb-lg max-w-2xl" padding="lg">
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2">
+            <History className="h-5 w-5 text-primary-600 dark:text-primary-400" aria-hidden />
+            Histórico de versões
+            <span className="rounded-full bg-neutral-200 px-2.5 py-0.5 text-small font-normal text-[var(--text-primary)] dark:bg-neutral-700">
+              Versão atual: {formVersion}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-md">
+          {revisions.length === 0 ? (
+            <p className="text-small text-[var(--text-secondary)]">
+              Nenhum registro. Após salvar alterações, aparecem aqui o autor, o resumo das mudanças e a data.
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {revisions.map((r) => {
+                const det = r.details as { changes?: unknown[] } | null;
+                const hasDetailList = Boolean(det?.changes && Array.isArray(det.changes) && det.changes.length > 0);
+                return (
+                  <li
+                    key={r.id}
+                    className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-700"
+                  >
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
+                      <span className="text-small font-medium text-[var(--text-primary)]">
+                        v{r.version}
+                        {r.summary ? ` · ${r.summary}` : ""}
+                      </span>
+                      <time className="text-caption text-[var(--text-secondary)]" dateTime={r.createdAt}>
+                        {new Date(r.createdAt).toLocaleString("pt-BR")}
+                      </time>
+                    </div>
+                    <p className="mt-1 text-caption text-[var(--text-secondary)]">
+                      {r.editedByName ?? "Autor não identificado"}
+                    </p>
+                    {hasDetailList ? (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          className="text-small text-primary-600 hover:underline dark:text-primary-400"
+                          onClick={() => setRevisionOpenId((x) => (x === r.id ? null : r.id))}
+                        >
+                          {revisionOpenId === r.id ? "Ocultar detalhes" : "Ver detalhes"}
+                        </button>
+                        {revisionOpenId === r.id ? (
+                          <pre className="mt-2 max-h-48 overflow-auto rounded bg-neutral-100 p-2 text-caption text-[var(--text-primary)] dark:bg-neutral-900">
+                            {JSON.stringify(r.details, null, 2)}
+                          </pre>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
 
       <form
         onSubmit={(e) => {
@@ -584,6 +668,28 @@ export default function EditFormPage() {
                 {STATUS_HINTS[status]}
               </p>
             </div>
+            {status === "paused" && (
+              <div>
+                <label
+                  htmlFor="edit-paused-message"
+                  className="mb-1 block text-small font-medium text-[var(--text-primary)]"
+                >
+                  Mensagem ao pausar (ex.: voltamos em…)
+                </label>
+                <textarea
+                  id="edit-paused-message"
+                  value={pausedMessage}
+                  onChange={(e) => setPausedMessage(e.target.value)}
+                  rows={3}
+                  maxLength={2000}
+                  placeholder="Ex.: Voltamos na segunda-feira. Obrigado pela paciência."
+                  className="w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] placeholder:text-neutral-400 dark:border-neutral-600"
+                />
+                <p className="mt-1 text-caption text-[var(--text-secondary)]">
+                  Exibida no link público enquanto o formulário estiver pausado.
+                </p>
+              </div>
+            )}
             <Input
               id="edit-slug"
               label="Link curto (opcional)"

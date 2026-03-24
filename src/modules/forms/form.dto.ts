@@ -7,6 +7,7 @@ export function formDTO(form: Form) {
     title: form.title,
     description: form.description,
     closingMessage: form.closingMessage,
+    pausedMessage: form.pausedMessage,
     folderId: form.folderId,
     folder: form.folder,
     isTemplate: form.isTemplate ?? false,

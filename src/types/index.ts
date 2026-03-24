@@ -24,6 +24,7 @@ export interface ResponseFilters {
   startDate?: Date;
   endDate?: Date;
   respondentId?: string;
+  respondentSearch?: string;
   department?: string;
   questionId?: string;
   answerValue?: string;

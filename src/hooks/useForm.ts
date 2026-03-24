@@ -8,8 +8,9 @@ export type FormDetail = {
   title: string;
   description?: string;
   closingMessage?: string;
-    folderId?: string;
-    folder?: string;
+  pausedMessage?: string;
+  folderId?: string;
+  folder?: string;
   isTemplate?: boolean;
   allowAnonymous?: boolean;
   status: string;
