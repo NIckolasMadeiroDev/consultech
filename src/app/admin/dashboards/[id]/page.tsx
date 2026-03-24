@@ -19,6 +19,9 @@ import {
   Pencil,
   ExternalLink,
   ChevronLeft,
+  Percent,
+  Clock,
+  ListOrdered,
 } from "lucide-react";
 
 type FormWithSummary = {
@@ -29,6 +32,8 @@ type FormWithSummary = {
 };
 
 type PeriodKey = "all" | "7" | "30";
+
+type DashboardAnalytics = Awaited<ReturnType<typeof api.fetchDashboardAnalytics>>;
 
 const PERIOD_OPTIONS: { value: PeriodKey; label: string }[] = [
   { value: "all", label: "Todo o período" },
@@ -81,6 +86,8 @@ export default function DashboardDetailPage() {
   const [saving, setSaving] = useState(false);
   const [deleteModal, setDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
   useEffect(() => {
     if (!dashboard || !id) {
@@ -100,6 +107,30 @@ export default function DashboardDetailPage() {
       })
       .finally(() => {
         if (!cancelled) setDetailsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dashboard, id, userId, period]);
+
+  useEffect(() => {
+    if (!dashboard || !id) {
+      setAnalytics(null);
+      return;
+    }
+    let cancelled = false;
+    setAnalyticsLoading(true);
+    const p = getPeriodParams(period);
+    api
+      .fetchDashboardAnalytics(id, userId, p)
+      .then((data) => {
+        if (!cancelled) setAnalytics(data);
+      })
+      .catch(() => {
+        if (!cancelled) setAnalytics(null);
+      })
+      .finally(() => {
+        if (!cancelled) setAnalyticsLoading(false);
       });
     return () => {
       cancelled = true;
@@ -242,6 +273,101 @@ export default function DashboardDetailPage() {
           </div>
         </Card>
       </div>
+
+      <div className="mb-lg">
+        <h2 className="mb-md text-h4 text-[var(--text-primary)]">Painéis prontos</h2>
+        <div className="grid gap-md lg:grid-cols-3">
+          <Card className="flex items-start gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+              <Percent className="h-6 w-6 text-emerald-700 dark:text-emerald-400" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-caption text-[var(--text-secondary)]">Taxa de conclusão média</p>
+              <p className="mt-1 text-h4 text-[var(--text-primary)]">
+                {analyticsLoading
+                  ? "—"
+                  : analytics?.avgCompletionRate != null
+                    ? `${(analytics.avgCompletionRate * 100).toFixed(1)}%`
+                    : "—"}
+              </p>
+              <p className="mt-2 text-caption text-[var(--text-secondary)]">
+                Média do preenchimento das perguntas visíveis por resposta (condicionais consideradas).
+              </p>
+            </div>
+          </Card>
+          <Card className="flex items-start gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+              <Clock className="h-6 w-6 text-amber-800 dark:text-amber-400" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-caption text-[var(--text-secondary)]">Tempo médio por resposta</p>
+              <p className="mt-1 text-h4 text-[var(--text-primary)]">—</p>
+              <p className="mt-2 text-caption text-[var(--text-secondary)]">
+                {analytics?.avgTimeHint ??
+                  "Quando houver timestamps por etapa, o tempo médio aparecerá aqui."}
+              </p>
+            </div>
+          </Card>
+          <Card className="flex items-start gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-900/30">
+              <ListOrdered className="h-6 w-6 text-sky-800 dark:text-sky-400" aria-hidden />
+            </div>
+            <div className="min-w-0">
+              <p className="text-caption text-[var(--text-secondary)]">Abandono por pergunta</p>
+              <p className="mt-1 text-h4 text-[var(--text-primary)]">
+                {analyticsLoading
+                  ? "—"
+                  : analytics && analytics.abandonmentByQuestion.length > 0
+                    ? `${analytics.abandonmentByQuestion.length} perguntas`
+                    : "—"}
+              </p>
+              <p className="mt-2 text-caption text-[var(--text-secondary)]">
+                Estimativa de não resposta entre quem viu a pergunta (útil para opcionais e funil).
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+
+      {analytics && analytics.abandonmentByQuestion.length > 0 && (
+        <Card className="mb-lg" padding="lg">
+          <h2 className="text-h4 text-[var(--text-primary)]">Abandono estimado por pergunta</h2>
+          <p className="mt-1 text-caption text-[var(--text-secondary)]">
+            Para cada pergunta: entre respostas em que ela era visível, percentual que não preencheu.
+          </p>
+          <div className="mt-lg overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-left text-body">
+              <thead>
+                <tr className="border-b border-neutral-200 text-caption text-[var(--text-secondary)] dark:border-neutral-700">
+                  <th className="pb-2 pr-4 font-medium">Formulário</th>
+                  <th className="pb-2 pr-4 font-medium">Pergunta</th>
+                  <th className="pb-2 pr-4 font-medium">Responderam</th>
+                  <th className="pb-2 font-medium">Abandono est.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {analytics.abandonmentByQuestion.map((row) => (
+                  <tr
+                    key={`${row.formId}-${row.questionId}`}
+                    className="border-b border-neutral-100 dark:border-neutral-800"
+                  >
+                    <td className="py-2 pr-4 text-[var(--text-primary)]">{row.formTitle}</td>
+                    <td className="max-w-xs py-2 pr-4 text-[var(--text-primary)]">
+                      <span className="line-clamp-2">{row.questionText}</span>
+                    </td>
+                    <td className="py-2 pr-4 text-[var(--text-secondary)]">
+                      {row.responseRatePercent}% ({row.answeredCount}/{row.eligibleResponses})
+                    </td>
+                    <td className="py-2 text-[var(--text-primary)]">
+                      {row.abandonmentEstimatePercent}%
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       <Card padding="lg">
         <div className="flex flex-wrap items-center justify-between gap-4">

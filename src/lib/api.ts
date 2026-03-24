@@ -295,6 +295,45 @@ export async function fetchDashboardSummary(
   return res.json();
 }
 
+export async function fetchDashboardAnalytics(
+  id: string,
+  userId?: string,
+  params?: { startDate?: string; endDate?: string }
+): Promise<{
+  avgCompletionRate: number | null;
+  byForm: Array<{
+    formId: string;
+    title: string;
+    responseCount: number;
+    avgCompletionRate: number | null;
+  }>;
+  abandonmentByQuestion: Array<{
+    formId: string;
+    formTitle: string;
+    questionId: string;
+    questionText: string;
+    orderIndex: number;
+    eligibleResponses: number;
+    answeredCount: number;
+    responseRatePercent: number;
+    abandonmentEstimatePercent: number;
+  }>;
+  avgTimePerResponseSeconds: null;
+  avgTimeHint: string;
+}> {
+  const url = new URL(`${getBaseUrl()}/api/dashboards/${id}/analytics`);
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  const res = await fetch(url.toString(), { headers: getHeaders(userId) });
+  if (!res.ok) {
+    if (res.status === 401) throw new Error("Unauthorized");
+    if (res.status === 404) throw new Error("Dashboard not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch analytics");
+  }
+  return res.json();
+}
+
 export async function search(query: string): Promise<{
   forms: Array<{ id: string; title: string; status: string; createdAt: string }>;
   respondents: Array<{ id: string; name: string; email: string }>;

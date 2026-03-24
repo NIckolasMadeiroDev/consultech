@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/layout";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/contexts/toast-context";
+import { Eye, EyeOff } from "lucide-react";
 
 const REDIRECT_DELAY_MS = 400;
 
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const toast = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,12 +87,22 @@ export default function LoginPage() {
           />
           <Input
             id="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             label="Senha"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            rightAction={
+              <button
+                type="button"
+                className="rounded-md p-1.5 text-neutral-500 outline-none transition-colors hover:bg-neutral-100 hover:text-neutral-800 focus-visible:ring-2 focus-visible:ring-primary-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+              </button>
+            }
           />
           <Button type="submit" className="w-full" loading={loading} disabled={loading}>
             {loading ? "Entrando..." : "Entrar"}

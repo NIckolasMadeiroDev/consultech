@@ -7,6 +7,7 @@ import { CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { isQuestionVisible } from "@/lib/question-visibility";
 
 const inputBaseClass =
   "h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
@@ -30,24 +31,6 @@ export type RespondFormQuestion = {
   conditionOperator?: string;
   conditionValue?: unknown;
 };
-
-export function isQuestionVisible(
-  q: RespondFormQuestion,
-  answers: Record<string, AnswerValue>
-): boolean {
-  if (!q.conditionQuestionId) return true;
-  const ref = answers[q.conditionQuestionId];
-  const target = q.conditionValue;
-  const op = q.conditionOperator ?? "eq";
-  if (op === "eq") return ref === target;
-  if (op === "neq") return ref !== target;
-  if (op === "contains") {
-    if (Array.isArray(ref)) return ref.includes(target as string);
-    if (typeof ref === "string") return ref.includes(String(target));
-    return false;
-  }
-  return true;
-}
 
 function draftStorageKey(formId: string) {
   return `consultech-form-draft:${formId}`;
