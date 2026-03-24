@@ -26,7 +26,27 @@ function loadRawDatabaseUrl() {
 }
 
 function toDirectUrl(raw) {
-  let direct = raw.replace(":6543/", ":5432/");
+  const trimmed = raw.trim();
+  try {
+    const u = new URL(trimmed);
+    const host = u.hostname;
+    const user = decodeURIComponent((u.username || "").replace(/\+/g, " "));
+    if (host.endsWith("pooler.supabase.com") && user.startsWith("postgres.")) {
+      const ref = user.slice("postgres.".length);
+      if (ref.length > 0) {
+        u.hostname = `db.${ref}.supabase.co`;
+        u.port = "5432";
+        u.username = "postgres";
+        u.searchParams.delete("pgbouncer");
+        if (!u.searchParams.has("sslmode")) {
+          u.searchParams.set("sslmode", "require");
+        }
+        return u.toString();
+      }
+    }
+  } catch {
+  }
+  let direct = trimmed.replace(":6543/", ":5432/");
   direct = direct.replace(/\?pgbouncer=true(&|$)/, (_, end) =>
     end === "&" ? "?" : ""
   );
@@ -49,6 +69,12 @@ const files = [
 async function main() {
   if (process.env.SKIP_DB_MIGRATIONS === "1") {
     process.stdout.write("SKIP_DB_MIGRATIONS=1, migracoes ignoradas.\n");
+    return;
+  }
+  if (process.env.VERCEL === "1" && process.env.RUN_DB_MIGRATIONS_ON_BUILD !== "1") {
+    process.stdout.write(
+      "Build na Vercel: migracoes SQL omitidas. Aplique em Supabase (SQL Editor) ou rode npm run db:apply-supabase-migrations na sua maquina. Para forcar no build: RUN_DB_MIGRATIONS_ON_BUILD=1 e DATABASE_URL com conexao direta (db.PROJETO.supabase.co:5432, usuario postgres).\n"
+    );
     return;
   }
   const direct = toDirectUrl(loadRawDatabaseUrl());
