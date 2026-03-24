@@ -550,3 +550,27 @@ export async function refineFormDraft(
   }
   return res.json();
 }
+
+export type { SuggestFormCopyKind } from "@/modules/ai/suggest-form-copy.schema";
+
+export async function suggestFormCopy(
+  body: {
+    kind: import("@/modules/ai/suggest-form-copy.schema").SuggestFormCopyKind;
+    title?: string;
+    description?: string;
+    shareLink?: string | null;
+    shortLink?: string | null;
+  },
+  userId?: string
+): Promise<{ text: string }> {
+  const res = await fetch(`${getBaseUrl()}/api/ai/suggest-form-copy`, {
+    method: "POST",
+    headers: getHeaders(userId),
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha ao sugerir texto");
+  }
+  return res.json();
+}

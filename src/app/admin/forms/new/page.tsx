@@ -21,12 +21,14 @@ import {
   GripVertical,
   FolderPlus,
   Sparkles,
+  Copy,
 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import {
   RespondFormView,
   type RespondFormQuestion,
 } from "@/components/forms/respond-form-view";
+import { SuggestFormCopyButton } from "@/components/admin/suggest-form-copy-button";
 
 const QUESTION_TYPES = [
   "section",
@@ -162,6 +164,7 @@ export default function NewFormPage() {
   const nextQuestionKeyRef = useRef(1);
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
+  const [inviteDraft, setInviteDraft] = useState("");
 
   useEffect(() => {
     void api.fetchFormFolders(userId).then(setFolders).catch(() => setFolders([]));
@@ -561,9 +564,18 @@ export default function NewFormPage() {
                 className="text-[var(--text-primary)]"
               />
               <div>
-                <label htmlFor="new-description" className="mb-1 block text-small font-medium text-[var(--text-primary)]">
-                  Descrição
-                </label>
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="new-description" className="block text-small font-medium text-[var(--text-primary)]">
+                    Descrição
+                  </label>
+                  <SuggestFormCopyButton
+                    kind="form_description"
+                    userId={userId}
+                    context={{ title, description }}
+                    onApply={setDescription}
+                    disabled={aiLoading}
+                  />
+                </div>
                 <textarea
                   id="new-description"
                   value={description}
@@ -601,12 +613,21 @@ export default function NewFormPage() {
                 </Button>
               </div>
               <div>
-                <label
-                  htmlFor="new-closing-message"
-                  className="mb-1 block text-small font-medium text-[var(--text-primary)]"
-                >
-                  Mensagem ao finalizar (opcional)
-                </label>
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <label
+                    htmlFor="new-closing-message"
+                    className="block text-small font-medium text-[var(--text-primary)]"
+                  >
+                    Mensagem ao finalizar (opcional)
+                  </label>
+                  <SuggestFormCopyButton
+                    kind="closing_message"
+                    userId={userId}
+                    context={{ title, description }}
+                    onApply={setClosingMessage}
+                    disabled={aiLoading}
+                  />
+                </div>
                 <textarea
                   id="new-closing-message"
                   value={closingMessage}
@@ -641,6 +662,50 @@ export default function NewFormPage() {
                   </a>
                 </p>
               )}
+              <div className="rounded-lg border border-neutral-200 p-md dark:border-neutral-700">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <label htmlFor="new-invite-draft" className="text-small font-medium text-[var(--text-primary)]">
+                    Texto para convidar (opcional)
+                  </label>
+                  <SuggestFormCopyButton
+                    kind="share_invite"
+                    userId={userId}
+                    context={{
+                      title,
+                      description,
+                      shortLink: slugPreview ?? undefined,
+                    }}
+                    onApply={setInviteDraft}
+                    disabled={aiLoading}
+                    label="Sugerir convite"
+                  />
+                </div>
+                <textarea
+                  id="new-invite-draft"
+                  value={inviteDraft}
+                  onChange={(e) => setInviteDraft(e.target.value)}
+                  rows={3}
+                  placeholder="Rascunho para redes ou e-mail. Se definiu link curto acima, a sugestão pode incluí-lo. O link longo de resposta só fica disponível após criar o formulário."
+                  className="mb-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={!inviteDraft.trim()}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(inviteDraft.trim());
+                      toast("Convite copiado.", "success");
+                    } catch {
+                      toast("Não foi possível copiar.", "error");
+                    }
+                  }}
+                  leftIcon={<Copy className="h-4 w-4" />}
+                >
+                  Copiar convite
+                </Button>
+              </div>
               <div>
                 <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                   <label htmlFor="new-folder-id" className="block text-small font-medium text-[var(--text-primary)]">

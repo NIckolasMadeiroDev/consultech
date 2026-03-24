@@ -6,15 +6,26 @@ import { Copy, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/contexts/toast-context";
+import { SuggestFormCopyButton } from "@/components/admin/suggest-form-copy-button";
 
 type FormShareActivePanelProps = {
   readonly respondUrl: string;
   readonly shortUrl: string | null;
+  readonly formTitle?: string;
+  readonly formDescription?: string;
+  readonly userId?: string;
 };
 
-export function FormShareActivePanel({ respondUrl, shortUrl }: FormShareActivePanelProps) {
+export function FormShareActivePanel({
+  respondUrl,
+  shortUrl,
+  formTitle,
+  formDescription,
+  userId,
+}: FormShareActivePanelProps) {
   const toast = useToast();
   const [qrSrc, setQrSrc] = useState<string | null>(null);
+  const [inviteText, setInviteText] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -118,6 +129,40 @@ export function FormShareActivePanel({ respondUrl, shortUrl }: FormShareActivePa
               </p>
             )}
           </div>
+        </div>
+        <div className="rounded-lg border border-green-200/80 bg-white/60 p-md dark:border-green-900/60 dark:bg-neutral-900/40">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-small font-medium text-[var(--text-primary)]">Texto de convite (opcional)</p>
+            <SuggestFormCopyButton
+              kind="share_invite"
+              userId={userId}
+              context={{
+                title: formTitle,
+                description: formDescription,
+                shareLink: respondUrl,
+                shortLink: shortUrl,
+              }}
+              onApply={setInviteText}
+              label="Sugerir convite"
+            />
+          </div>
+          <textarea
+            value={inviteText}
+            onChange={(e) => setInviteText(e.target.value)}
+            rows={4}
+            placeholder="Mensagem para colar no WhatsApp, e-mail ou intranet. Use Sugerir convite para gerar um rascunho com os links acima."
+            className="mb-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={!inviteText.trim()}
+            onClick={() => void copy(inviteText.trim(), "Convite")}
+            leftIcon={<Copy className="h-4 w-4" />}
+          >
+            Copiar convite
+          </Button>
         </div>
       </CardContent>
     </Card>

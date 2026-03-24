@@ -26,6 +26,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FormShareActivePanel } from "@/components/admin/form-share-active-panel";
+import { SuggestFormCopyButton } from "@/components/admin/suggest-form-copy-button";
 import { updateFormSchema } from "@/modules/forms/form.schema";
 
 const QUESTION_TYPES = [
@@ -552,6 +553,9 @@ export default function EditFormPage() {
           <FormShareActivePanel
             respondUrl={getFullUrl(`/forms/${id}/respond`)}
             shortUrl={slug.trim() ? getFullUrl(`/r/${slug.trim()}`) : null}
+            formTitle={title}
+            formDescription={description}
+            userId={userId}
           />
         </div>
       ) : null}
@@ -700,34 +704,55 @@ export default function EditFormPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              disabled={status === "archived"}
               className="text-[var(--text-primary)]"
             />
             <div>
-              <label htmlFor="edit-description" className="mb-1 block text-small font-medium text-[var(--text-primary)]">
-                Descrição
-              </label>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <label htmlFor="edit-description" className="block text-small font-medium text-[var(--text-primary)]">
+                  Descrição
+                </label>
+                <SuggestFormCopyButton
+                  kind="form_description"
+                  userId={userId}
+                  context={{ title, description }}
+                  onApply={setDescription}
+                  disabled={status === "archived" || aiLoading}
+                />
+              </div>
               <textarea
                 id="edit-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                className="w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                disabled={status === "archived"}
+                className="w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-60 dark:border-neutral-600"
               />
             </div>
             <div>
-              <label
-                htmlFor="edit-closing-message"
-                className="mb-1 block text-small font-medium text-[var(--text-primary)]"
-              >
-                Mensagem ao finalizar (opcional)
-              </label>
+              <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="edit-closing-message"
+                  className="block text-small font-medium text-[var(--text-primary)]"
+                >
+                  Mensagem ao finalizar (opcional)
+                </label>
+                <SuggestFormCopyButton
+                  kind="closing_message"
+                  userId={userId}
+                  context={{ title, description }}
+                  onApply={setClosingMessage}
+                  disabled={status === "archived" || aiLoading}
+                />
+              </div>
               <textarea
                 id="edit-closing-message"
                 value={closingMessage}
                 onChange={(e) => setClosingMessage(e.target.value)}
                 rows={3}
                 placeholder="Ex.: Obrigado por participar."
-                className="w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                disabled={status === "archived"}
+                className="w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 disabled:opacity-60 dark:border-neutral-600"
               />
               <p className="mt-1 text-caption text-[var(--text-secondary)]">
                 Exibida na confirmação após o envio da resposta.
@@ -831,12 +856,21 @@ export default function EditFormPage() {
             </div>
             {status === "paused" && (
               <div>
-                <label
-                  htmlFor="edit-paused-message"
-                  className="mb-1 block text-small font-medium text-[var(--text-primary)]"
-                >
-                  Mensagem ao pausar (ex.: voltamos em…)
-                </label>
+                <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                  <label
+                    htmlFor="edit-paused-message"
+                    className="block text-small font-medium text-[var(--text-primary)]"
+                  >
+                    Mensagem ao pausar (ex.: voltamos em…)
+                  </label>
+                  <SuggestFormCopyButton
+                    kind="paused_message"
+                    userId={userId}
+                    context={{ title, description }}
+                    onApply={setPausedMessage}
+                    disabled={aiLoading}
+                  />
+                </div>
                 <textarea
                   id="edit-paused-message"
                   value={pausedMessage}
