@@ -32,11 +32,9 @@ export async function GET(
       return [];
     }
 
-    const questionType = chart.question.type;
-
-    // Process data based on chart type and question type
+    // Process data based on chart type
     if (chart.chartType === "bar" || chart.chartType === "pie") {
-      return processBarOrPieChartData(answers, questionType, chart.question.options);
+      return processBarOrPieChartData(answers);
     } else if (chart.chartType === "line") {
       return processLineChartData(answers);
     }
@@ -46,18 +44,16 @@ export async function GET(
 }
 
 function processBarOrPieChartData(
-  answers: { value: any }[],
-  questionType: string,
-  options: any
-): any[] {
+  answers: { value: unknown }[]
+): Array<{ label: string; value: number }> {
   const counts = new Map<string, number>();
 
   answers.forEach((answer) => {
-    let key = String(answer.value || "Sem resposta");
+    const key = String(answer.value || "Sem resposta");
 
     // Handle multiple choice (array values)
     if (Array.isArray(answer.value)) {
-      answer.value.forEach((v: any) => {
+      answer.value.forEach((v: unknown) => {
         const k = String(v);
         counts.set(k, (counts.get(k) || 0) + 1);
       });
@@ -75,7 +71,7 @@ function processBarOrPieChartData(
   return result;
 }
 
-function processLineChartData(answers: { value: any }[]): any[] {
+function processLineChartData(answers: { value: unknown }[]): Array<{ month: string; value: number }> {
   // Group by month for time series
   const byMonth = new Map<string, number>();
 

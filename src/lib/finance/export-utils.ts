@@ -3,7 +3,7 @@ import * as XLSX from "xlsx";
 export type ExportFormat = "csv" | "xlsx" | "json";
 
 export function exportToFile(
-  data: any[],
+  data: Record<string, unknown>[],
   filename: string,
   format: ExportFormat = "xlsx"
 ): void {

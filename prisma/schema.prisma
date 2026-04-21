@@ -8,13 +8,13 @@ datasource db {
 }
 
 model Admin {
-  id           String       @id @default(uuid()) @db.Uuid
-  name         String
-  email        String       @unique
-  passwordHash String       @map("password_hash")
-  createdAt    DateTime     @default(now()) @map("created_at")
-  forms        Form[]
-  dashboards   Dashboard[]
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  forms         Form[]
+  dashboards    Dashboard[]
   formFolders   FormFolder[]
   formRevisions FormRevision[]
 }
@@ -93,21 +93,21 @@ model Question {
 }
 
 model Respondent {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String     @id @default(uuid()) @db.Uuid
   name       String
   email      String
-  employeeId String?  @map("employee_id")
+  employeeId String?    @map("employee_id")
   department String?
-  createdAt  DateTime @default(now()) @map("created_at")
+  createdAt  DateTime   @default(now()) @map("created_at")
   responses  Response[]
 }
 
 model Response {
-  id           String   @id @default(uuid()) @db.Uuid
-  formId       String   @map("form_id") @db.Uuid
-  respondentId String   @map("respondent_id") @db.Uuid
-  submittedAt  DateTime @default(now()) @map("submitted_at")
-  form         Form     @relation(fields: [formId], references: [id])
+  id           String     @id @default(uuid()) @db.Uuid
+  formId       String     @map("form_id") @db.Uuid
+  respondentId String     @map("respondent_id") @db.Uuid
+  submittedAt  DateTime   @default(now()) @map("submitted_at")
+  form         Form       @relation(fields: [formId], references: [id])
   respondent   Respondent @relation(fields: [respondentId], references: [id])
   answers      Answer[]
 }
@@ -118,6 +118,7 @@ model Answer {
   questionId String   @map("question_id") @db.Uuid
   value      Json
   response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 model Dashboard {
@@ -129,6 +130,8 @@ model Dashboard {
   formIds   Json             @default("[]") @map("form_ids")
   admin     Admin?           @relation(fields: [createdBy], references: [id])
   charts    DashboardChart[]
+
+  @@map("Dashboard")
 }
 
 model AiContextChunk {
@@ -159,123 +162,123 @@ model AppSqlMigration {
 // ========== Módulo Financeiro (isolado do restante do sistema) ==========
 
 model FinanceCashbox {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String?
-  balance     Decimal  @default(0) @db.Decimal(15, 2)
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  transactionsOut Transaction[] @relation("CashboxOrigin")
-  transactionsIn  Transaction[] @relation("CashboxDestination")
-  payables    FinancePayable[]
-  receivables FinanceReceivable[]
+  id              String              @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  balance         Decimal             @default(0) @db.Decimal(15, 2)
+  isActive        Boolean             @default(true) @map("is_active")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  transactionsOut Transaction[]       @relation("CashboxOrigin")
+  transactionsIn  Transaction[]       @relation("CashboxDestination")
+  payables        FinancePayable[]
+  receivables     FinanceReceivable[]
 
   @@map("finance_cashbox")
 }
 
 model FinanceCategory {
-  id         String   @id @default(uuid()) @db.Uuid
-  name       String
-  type       String   // "entry" | "exit"
-  parentId   String?  @map("parent_id") @db.Uuid
-  parent     FinanceCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children   FinanceCategory[] @relation("CategoryHierarchy")
+  id           String              @id @default(uuid()) @db.Uuid
+  name         String
+  type         String // "entry" | "exit"
+  parentId     String?             @map("parent_id") @db.Uuid
+  parent       FinanceCategory?    @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     FinanceCategory[]   @relation("CategoryHierarchy")
   transactions Transaction[]
-  payables   FinancePayable[]
-  receivables FinanceReceivable[]
+  payables     FinancePayable[]
+  receivables  FinanceReceivable[]
 
   @@map("finance_category")
 }
 
 model FinancePaymentMethod {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
+  id           String              @id @default(uuid()) @db.Uuid
+  name         String
   transactions Transaction[]
-  payables   FinancePayable[]
-  receivables FinanceReceivable[]
+  payables     FinancePayable[]
+  receivables  FinanceReceivable[]
 
   @@map("finance_payment_method")
 }
 
 model Transaction {
-  id              String   @id @default(uuid()) @db.Uuid
-  type            String   // "entry" | "exit" | "transfer" | "withdraw" | "supply"
-  amount          Decimal  @db.Decimal(15, 2)
+  id              String                @id @default(uuid()) @db.Uuid
+  type            String // "entry" | "exit" | "transfer" | "withdraw" | "supply"
+  amount          Decimal               @db.Decimal(15, 2)
   description     String?
-  categoryId      String?  @map("category_id") @db.Uuid
-  category        FinanceCategory? @relation(fields: [categoryId], references: [id])
-  paymentMethodId String?  @map("payment_method_id") @db.Uuid
+  categoryId      String?               @map("category_id") @db.Uuid
+  category        FinanceCategory?      @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?               @map("payment_method_id") @db.Uuid
   paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
-  cashboxOriginId String?  @map("cashbox_origin_id") @db.Uuid
-  cashboxOrigin   FinanceCashbox? @relation("CashboxOrigin", fields: [cashboxOriginId], references: [id])
-  cashboxDestId   String?  @map("cashbox_dest_id") @db.Uuid
-  cashboxDest     FinanceCashbox? @relation("CashboxDestination", fields: [cashboxDestId], references: [id])
-  userId          String?  @map("user_id")
-  movementAt      DateTime @default(now()) @map("movement_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  payablesPaid    FinancePayable[]  @relation("PayableTransaction")
-  receivablesPaid FinanceReceivable[] @relation("ReceivableTransaction")
+  cashboxOriginId String?               @map("cashbox_origin_id") @db.Uuid
+  cashboxOrigin   FinanceCashbox?       @relation("CashboxOrigin", fields: [cashboxOriginId], references: [id])
+  cashboxDestId   String?               @map("cashbox_dest_id") @db.Uuid
+  cashboxDest     FinanceCashbox?       @relation("CashboxDestination", fields: [cashboxDestId], references: [id])
+  userId          String?               @map("user_id")
+  movementAt      DateTime              @default(now()) @map("movement_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  payablesPaid    FinancePayable[]      @relation("PayableTransaction")
+  receivablesPaid FinanceReceivable[]   @relation("ReceivableTransaction")
 
   @@map("transaction")
 }
 
 model FinancePayable {
-  id              String    @id @default(uuid()) @db.Uuid
+  id              String                @id @default(uuid()) @db.Uuid
   description     String
-  amount          Decimal   @db.Decimal(15, 2)
-  dueDate         DateTime  @map("due_date") @db.Date
-  status          String    @default("pending") // pending | paid | cancelled
-  paidAt          DateTime? @map("paid_at")
-  transactionId   String?   @map("transaction_id") @db.Uuid
-  transaction     Transaction? @relation("PayableTransaction", fields: [transactionId], references: [id])
-  cashboxId       String?   @map("cashbox_id") @db.Uuid
-  cashbox         FinanceCashbox? @relation(fields: [cashboxId], references: [id])
-  categoryId      String?   @map("category_id") @db.Uuid
-  category        FinanceCategory? @relation(fields: [categoryId], references: [id])
-  paymentMethodId String?   @map("payment_method_id") @db.Uuid
+  amount          Decimal               @db.Decimal(15, 2)
+  dueDate         DateTime              @map("due_date") @db.Date
+  status          String                @default("pending") // pending | paid | cancelled
+  paidAt          DateTime?             @map("paid_at")
+  transactionId   String?               @map("transaction_id") @db.Uuid
+  transaction     Transaction?          @relation("PayableTransaction", fields: [transactionId], references: [id])
+  cashboxId       String?               @map("cashbox_id") @db.Uuid
+  cashbox         FinanceCashbox?       @relation(fields: [cashboxId], references: [id])
+  categoryId      String?               @map("category_id") @db.Uuid
+  category        FinanceCategory?      @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?               @map("payment_method_id") @db.Uuid
   paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
 
   @@map("finance_payable")
 }
 
 model FinanceReceivable {
-  id              String    @id @default(uuid()) @db.Uuid
+  id              String                @id @default(uuid()) @db.Uuid
   description     String
-  amount          Decimal   @db.Decimal(15, 2)
-  dueDate         DateTime  @map("due_date") @db.Date
-  status          String    @default("pending") // pending | received | cancelled
-  receivedAt      DateTime? @map("received_at")
-  transactionId   String?   @map("transaction_id") @db.Uuid
-  transaction     Transaction? @relation("ReceivableTransaction", fields: [transactionId], references: [id])
-  cashboxId       String?   @map("cashbox_id") @db.Uuid
-  cashbox         FinanceCashbox? @relation(fields: [cashboxId], references: [id])
-  categoryId      String?   @map("category_id") @db.Uuid
-  category        FinanceCategory? @relation(fields: [categoryId], references: [id])
-  paymentMethodId String?   @map("payment_method_id") @db.Uuid
+  amount          Decimal               @db.Decimal(15, 2)
+  dueDate         DateTime              @map("due_date") @db.Date
+  status          String                @default("pending") // pending | received | cancelled
+  receivedAt      DateTime?             @map("received_at")
+  transactionId   String?               @map("transaction_id") @db.Uuid
+  transaction     Transaction?          @relation("ReceivableTransaction", fields: [transactionId], references: [id])
+  cashboxId       String?               @map("cashbox_id") @db.Uuid
+  cashbox         FinanceCashbox?       @relation(fields: [cashboxId], references: [id])
+  categoryId      String?               @map("category_id") @db.Uuid
+  category        FinanceCategory?      @relation(fields: [categoryId], references: [id])
+  paymentMethodId String?               @map("payment_method_id") @db.Uuid
   paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
-  contractId      String?   @map("contract_id") @db.Uuid
-  contract        FinanceContract? @relation(fields: [contractId], references: [id])
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  contractId      String?               @map("contract_id") @db.Uuid
+  contract        FinanceContract?      @relation(fields: [contractId], references: [id])
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
 
   @@map("finance_receivable")
 }
 
 model FinanceContract {
-  id             String    @id @default(uuid()) @db.Uuid
-  contractNumber String    @unique @map("contract_number")
-  clientName     String?   @map("client_name")
-  totalValue     Decimal   @db.Decimal(15, 2) @map("total_value")
-  startDate      DateTime  @db.Date @map("start_date")
-  endDate        DateTime? @db.Date @map("end_date")
-  status         String    @default("active") // active | completed | cancelled
+  id             String              @id @default(uuid()) @db.Uuid
+  contractNumber String              @unique @map("contract_number")
+  clientName     String?             @map("client_name")
+  totalValue     Decimal             @map("total_value") @db.Decimal(15, 2)
+  startDate      DateTime            @map("start_date") @db.Date
+  endDate        DateTime?           @map("end_date") @db.Date
+  status         String              @default("active") // active | completed | cancelled
   description    String?
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
   receivables    FinanceReceivable[]
 
   @@map("finance_contract")
@@ -285,7 +288,7 @@ model FinanceRevenueGoal {
   id          String   @id @default(uuid()) @db.Uuid
   year        Int
   month       Int
-  goalValue   Decimal  @db.Decimal(15, 2) @map("goal_value")
+  goalValue   Decimal  @map("goal_value") @db.Decimal(15, 2)
   description String?
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -298,7 +301,7 @@ model FinanceOperationalCost {
   id            String   @id @default(uuid()) @db.Uuid
   year          Int
   month         Int
-  predictedCost Decimal  @db.Decimal(15, 2) @map("predicted_cost")
+  predictedCost Decimal  @map("predicted_cost") @db.Decimal(15, 2)
   description   String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -308,29 +311,29 @@ model FinanceOperationalCost {
 }
 
 model FinanceEvent {
-  id          String                  @id @default(uuid()) @db.Uuid
+  id          String                 @id @default(uuid()) @db.Uuid
   name        String
   description String?
-  eventDate   DateTime                @db.Date @map("event_date")
-  status      String                  @default("planning") // planning | approved | in_progress | completed | cancelled
-  createdAt   DateTime                @default(now()) @map("created_at")
-  updatedAt   DateTime                @updatedAt @map("updated_at")
+  eventDate   DateTime               @map("event_date") @db.Date
+  status      String                 @default("planning") // planning | approved | in_progress | completed | cancelled
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
   scenarios   FinanceEventScenario[]
 
   @@map("finance_event")
 }
 
 model FinanceEventScenario {
-  id            String        @id @default(uuid()) @db.Uuid
-  eventId       String        @map("event_id") @db.Uuid
-  event         FinanceEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  scenarioName  String        @map("scenario_name")
-  membersCount  Int           @map("members_count")
-  costPerMember Decimal       @db.Decimal(15, 2) @map("cost_per_member")
-  totalCost     Decimal       @db.Decimal(15, 2) @map("total_cost")
+  id            String       @id @default(uuid()) @db.Uuid
+  eventId       String       @map("event_id") @db.Uuid
+  event         FinanceEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  scenarioName  String       @map("scenario_name")
+  membersCount  Int          @map("members_count")
+  costPerMember Decimal      @map("cost_per_member") @db.Decimal(15, 2)
+  totalCost     Decimal      @map("total_cost") @db.Decimal(15, 2)
   notes         String?
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   @@map("finance_event_scenario")
 }

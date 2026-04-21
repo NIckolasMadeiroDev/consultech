@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const endDate = url.searchParams.get("endDate");
     const type = url.searchParams.get("type");
 
-    const where: any = {};
+    const where: { movementAt?: { gte?: Date; lte?: Date }; type?: string } = {};
     if (startDate) where.movementAt = { ...where.movementAt, gte: new Date(startDate + "T00:00:00.000Z") };
     if (endDate) where.movementAt = { ...where.movementAt, lte: new Date(endDate + "T23:59:59.999Z") };
     if (type && ["entry", "exit", "supply", "withdraw"].includes(type)) where.type = type;

@@ -5,9 +5,9 @@
 -- Stores custom chart configurations for dashboards
 CREATE TABLE IF NOT EXISTS dashboard_chart (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  dashboard_id UUID NOT NULL REFERENCES dashboard(id) ON DELETE CASCADE,
-  form_id UUID NOT NULL REFERENCES form(id) ON DELETE CASCADE,
-  question_id UUID NOT NULL REFERENCES form_question(id) ON DELETE CASCADE,
+  dashboard_id UUID NOT NULL REFERENCES "Dashboard"(id) ON DELETE CASCADE,
+  form_id UUID NOT NULL REFERENCES "Form"(id) ON DELETE CASCADE,
+  question_id UUID NOT NULL REFERENCES "Question"(id) ON DELETE CASCADE,
   chart_type TEXT NOT NULL CHECK (chart_type IN ('bar', 'line', 'pie')),
   title TEXT NOT NULL,
   display_order INT NOT NULL DEFAULT 0,

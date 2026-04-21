@@ -53,17 +53,16 @@ export default function MemberDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [id, setId] = useState<string>("");
   const [member, setMember] = useState<Respondent | null>(null);
   const [evolution, setEvolution] = useState<EvolutionData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     params.then((p) => {
-      setId(p.id);
       loadMember(p.id);
       loadEvolution(p.id);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadMember = async (memberId: string) => {

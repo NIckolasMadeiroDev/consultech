@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/infrastructure/database/prisma";
-import { getSession } from "@/lib/auth";
-import { AuditLogRepository } from "@/repositories/audit-log-repository";
+import { getSession } from "@/lib/auth-session";
+import { getAuditLogRepository } from "@/infrastructure/database/repositories";
 
 export const dynamic = "force-dynamic";
 
@@ -50,12 +50,12 @@ export async function POST(
       },
     });
 
-    await AuditLogRepository.log({
+    const auditRepo = getAuditLogRepository();
+    await auditRepo.create({
+      action: "event_scenario.created",
       entityType: "finance_event_scenario",
       entityId: scenario.id,
-      action: "CREATE",
-      performedBy: session?.user?.name || "system",
-      metadata: { eventId, scenarioName: scenario.scenarioName },
+      userId: session?.id ?? null,
     });
 
     return {

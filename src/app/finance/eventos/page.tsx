@@ -41,6 +41,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     loadEvents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const loadEvents = async () => {
@@ -118,7 +119,7 @@ export default function EventsPage() {
 
       {/* Empty State */}
       {!loading && events.length === 0 && (
-        <Card padding="xl" className="text-center">
+        <Card padding="lg" className="text-center">
           <Calendar className="mx-auto mb-4 h-12 w-12 text-[var(--text-secondary)]" />
           <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">
             Nenhum evento encontrado

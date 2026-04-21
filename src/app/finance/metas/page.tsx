@@ -27,6 +27,7 @@ export default function FinanceMetasPage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year]);
 
   function loadData() {
@@ -118,7 +119,7 @@ export default function FinanceMetasPage() {
         body: JSON.stringify({ year, month, goalValue: value }),
       });
       loadData();
-    } catch (err) {
+    } catch {
       setError("Erro ao atualizar meta");
     }
   }
@@ -131,7 +132,7 @@ export default function FinanceMetasPage() {
         body: JSON.stringify({ year, month, predictedCost: value }),
       });
       loadData();
-    } catch (err) {
+    } catch {
       setError("Erro ao atualizar custo");
     }
   }

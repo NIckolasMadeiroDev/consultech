@@ -66,6 +66,7 @@ export default function EventDetailsPage({
       loadEvent(p.id);
       loadDashboardData();
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadEvent = async (eventId: string) => {

@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/infrastructure/database/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession } from "@/lib/auth-session";
 
 export const dynamic = "force-dynamic";
 
@@ -45,8 +45,8 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return apiHandler(async () => {
-    const session = await getSession();
-    if (!session?.user) {
+    const session = await getSession(req);
+    if (!session) {
       throw new Error("Não autorizado");
     }
 

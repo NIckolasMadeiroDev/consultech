@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/infrastructure/database/prisma";
-import { getSession } from "@/lib/auth";
-import { AuditLogRepository } from "@/repositories/audit-log-repository";
+import { getSession } from "@/lib/auth-session";
+import { getAuditLogRepository } from "@/infrastructure/database/repositories";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +64,7 @@ export async function PATCH(
       throw new Error("Evento não encontrado");
     }
 
-    const data: any = {};
+    const data: { name?: string; description?: string | null; eventDate?: Date; status?: string } = {};
 
     if (body.name !== undefined) {
       if (!body.name?.trim()) {
@@ -103,12 +103,12 @@ export async function PATCH(
       },
     });
 
-    await AuditLogRepository.log({
+    const auditRepo = getAuditLogRepository();
+    await auditRepo.create({
+      action: "event.updated",
       entityType: "finance_event",
       entityId: id,
-      action: "UPDATE",
-      performedBy: session?.user?.name || "system",
-      metadata: { changes: Object.keys(data) },
+      userId: session?.id ?? null,
     });
 
     return {
@@ -151,12 +151,12 @@ export async function DELETE(
       where: { id },
     });
 
-    await AuditLogRepository.log({
+    const auditRepo = getAuditLogRepository();
+    await auditRepo.create({
+      action: "event.deleted",
       entityType: "finance_event",
       entityId: id,
-      action: "DELETE",
-      performedBy: session?.user?.name || "system",
-      metadata: { name: existing.name },
+      userId: session?.id ?? null,
     });
 
     return { success: true, message: "Evento deletado com sucesso" };

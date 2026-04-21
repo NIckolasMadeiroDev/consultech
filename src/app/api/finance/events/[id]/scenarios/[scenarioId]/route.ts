@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/infrastructure/database/prisma";
-import { getSession } from "@/lib/auth";
-import { AuditLogRepository } from "@/repositories/audit-log-repository";
+import { getSession } from "@/lib/auth-session";
+import { getAuditLogRepository } from "@/infrastructure/database/repositories";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +23,7 @@ export async function PATCH(
       throw new Error("Cenário não encontrado");
     }
 
-    const data: any = {};
+    const data: { scenarioName?: string; membersCount?: number; costPerMember?: number; notes?: string | null; totalCost?: number } = {};
 
     if (body.scenarioName !== undefined) {
       if (!body.scenarioName?.trim()) {
@@ -62,12 +62,12 @@ export async function PATCH(
       data,
     });
 
-    await AuditLogRepository.log({
+    const auditRepo = getAuditLogRepository();
+    await auditRepo.create({
+      action: "event_scenario.updated",
       entityType: "finance_event_scenario",
       entityId: scenarioId,
-      action: "UPDATE",
-      performedBy: session?.user?.name || "system",
-      metadata: { changes: Object.keys(data) },
+      userId: session?.id ?? null,
     });
 
     return {
@@ -103,12 +103,12 @@ export async function DELETE(
       where: { id: scenarioId },
     });
 
-    await AuditLogRepository.log({
+    const auditRepo = getAuditLogRepository();
+    await auditRepo.create({
+      action: "event_scenario.deleted",
       entityType: "finance_event_scenario",
       entityId: scenarioId,
-      action: "DELETE",
-      performedBy: session?.user?.name || "system",
-      metadata: { scenarioName: existing.scenarioName },
+      userId: session?.id ?? null,
     });
 
     return { success: true, message: "Cenário deletado com sucesso" };

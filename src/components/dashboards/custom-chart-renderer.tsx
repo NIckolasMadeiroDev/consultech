@@ -43,6 +43,7 @@ export function CustomChartRenderer({
 
   useEffect(() => {
     loadChartData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartId]);
 
   const loadChartData = async () => {

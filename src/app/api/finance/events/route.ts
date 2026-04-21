@@ -1,8 +1,8 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { prisma } from "@/infrastructure/database/prisma";
-import { getSession } from "@/lib/auth";
-import { AuditLogRepository } from "@/repositories/audit-log-repository";
+import { getSession } from "@/lib/auth-session";
+import { getAuditLogRepository } from "@/infrastructure/database/repositories";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const status = url.searchParams.get("status");
 
-    const where: any = {};
+    const where: { status?: string } = {};
     if (status && ["planning", "approved", "in_progress", "completed", "cancelled"].includes(status)) {
       where.status = status;
     }
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
         eventDate,
         status: body.status || "planning",
         scenarios: {
-          create: scenarios.map((s: any) => {
+          create: scenarios.map((s: { scenarioName: string; membersCount: number; costPerMember: number; notes?: string }) => {
             const membersCount = Number(s.membersCount);
             const costPerMember = Number(s.costPerMember);
             const totalCost = membersCount * costPerMember;
@@ -102,12 +102,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await AuditLogRepository.log({
+    const auditRepo = getAuditLogRepository();
+    await auditRepo.create({
+      action: "event.created",
       entityType: "finance_event",
       entityId: event.id,
-      action: "CREATE",
-      performedBy: session?.user?.name || "system",
-      metadata: { name: event.name, scenariosCount: scenarios.length },
+      userId: session?.id ?? null,
     });
 
     return {

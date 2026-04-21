@@ -9,7 +9,10 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const search = url.searchParams.get("search");
 
-    const where: any = {};
+    type WhereClause = {
+      OR?: Array<{ name: { contains: string; mode: "insensitive" } } | { email: { contains: string; mode: "insensitive" } }>;
+    };
+    const where: WhereClause = {};
     if (search?.trim()) {
       where.OR = [
         { name: { contains: search.trim(), mode: "insensitive" } },

@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const status = url.searchParams.get("status");
 
-    const where: any = {};
+    const where: { status?: string } = {};
     if (status && ["pending", "paid", "overdue", "cancelled"].includes(status)) {
       where.status = status;
     }
