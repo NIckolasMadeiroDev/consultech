@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   return apiHandler(async () => {
-    const session = await getSession();
+    const session = await getSession(req);
     const body = await req.json().catch(() => ({}));
 
     if (!body.name?.trim()) {

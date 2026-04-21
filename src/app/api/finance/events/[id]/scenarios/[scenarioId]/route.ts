@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; scenarioId: string }> }
 ) {
   return apiHandler(async () => {
-    const session = await getSession();
+    const session = await getSession(req);
     const { scenarioId } = await params;
     const body = await req.json().catch(() => ({}));
 
@@ -87,7 +87,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; scenarioId: string }> }
 ) {
   return apiHandler(async () => {
-    const session = await getSession();
+    const session = await getSession(req);
     const { scenarioId } = await params;
 
     const existing = await prisma.financeEventScenario.findUnique({

@@ -52,7 +52,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return apiHandler(async () => {
-    const session = await getSession();
+    const session = await getSession(req);
     const { id } = await params;
     const body = await req.json().catch(() => ({}));
 
@@ -135,7 +135,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return apiHandler(async () => {
-    const session = await getSession();
+    const session = await getSession(req);
     const { id } = await params;
 
     const existing = await prisma.financeEvent.findUnique({

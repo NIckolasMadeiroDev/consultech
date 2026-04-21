@@ -164,20 +164,20 @@ export default function ContratoDetailPage() {
           <MoneyValue
             value={contract.totalValue}
             variant="neutral"
-            size="large"
+            size="dashboard"
           />
         </Card>
         <Card padding="md">
           <p className="mb-1 text-small text-[var(--text-secondary)]">
             Recebido
           </p>
-          <MoneyValue value={totalReceived} variant="entry" size="large" />
+          <MoneyValue value={totalReceived} variant="entry" size="dashboard" />
         </Card>
         <Card padding="md">
           <p className="mb-1 text-small text-[var(--text-secondary)]">
             Pendente
           </p>
-          <MoneyValue value={totalPending} variant="exit" size="large" />
+          <MoneyValue value={totalPending} variant="exit" size="dashboard" />
         </Card>
         <Card padding="md">
           <p className="mb-1 text-small text-[var(--text-secondary)]">
