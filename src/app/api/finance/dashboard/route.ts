@@ -36,10 +36,18 @@ function startOfNextMonth(d: Date): Date {
 export async function GET() {
   return apiHandler(async () => {
     const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
     const monthStart = startOfMonth(now);
     const monthEnd = startOfNextMonth(now);
 
-    const [allTransactions, monthTransactions] = await Promise.all([
+    const [
+      allTransactions,
+      monthTransactions,
+      revenueGoal,
+      operationalCost,
+      monthPayables,
+    ] = await Promise.all([
       prisma.transaction.findMany({
         select: {
           type: true,
@@ -55,6 +63,18 @@ export async function GET() {
         select: {
           type: true,
           amount: true,
+        },
+      }),
+      prisma.financeRevenueGoal.findUnique({
+        where: { year_month: { year, month } },
+      }),
+      prisma.financeOperationalCost.findUnique({
+        where: { year_month: { year, month } },
+      }),
+      prisma.financePayable.findMany({
+        where: {
+          dueDate: { gte: monthStart, lt: monthEnd },
+          status: "pending",
         },
       }),
     ]);
@@ -76,11 +96,47 @@ export async function GET() {
       year: "numeric",
     });
 
+    const goalValue = revenueGoal ? Number(revenueGoal.goalValue) : null;
+    const goalAchieved = goalValue ? (entriesMonth / goalValue) * 100 : null;
+    const goalStatus = goalAchieved
+      ? goalAchieved >= 100
+        ? "green"
+        : goalAchieved >= 80
+        ? "yellow"
+        : "red"
+      : null;
+
+    const predictedCost = operationalCost ? Number(operationalCost.predictedCost) : null;
+    const pendingPayables = monthPayables.reduce((sum, p) => sum + Number(p.amount), 0);
+
+    const remainingBudget = balance - pendingPayables;
+    const cashStatus = predictedCost
+      ? remainingBudget > predictedCost * 0.2
+        ? "green"
+        : remainingBudget > 0
+        ? "yellow"
+        : "red"
+      : "green";
+
     return {
       balance,
       entriesMonth,
       exitsMonth,
       monthLabel: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
+      revenueGoal: {
+        goal: goalValue,
+        achieved: entriesMonth,
+        percentage: goalAchieved,
+        status: goalStatus,
+      },
+      operationalCost: {
+        predicted: predictedCost,
+        realized: exitsMonth,
+        pending: pendingPayables,
+        remainingBudget,
+        status: cashStatus,
+      },
     };
   });
 }
+

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 type Category = { id: string; name: string; type: string };
 type PaymentMethod = { id: string; name: string };
 type Cashbox = { id: string; name: string };
+type Contract = { id: string; contractNumber: string; clientName: string | null };
 
 export default function NovaContaReceberPage() {
   const router = useRouter();
@@ -20,9 +21,11 @@ export default function NovaContaReceberPage() {
   const [categoryId, setCategoryId] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [cashboxId, setCashboxId] = useState("");
+  const [contractId, setContractId] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [cashboxes, setCashboxes] = useState<Cashbox[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,10 +35,12 @@ export default function NovaContaReceberPage() {
       fetch("/api/finance/categories").then((r) => r.json()),
       fetch("/api/finance/payment-methods").then((r) => r.json()),
       fetch("/api/finance/cashboxes").then((r) => r.json()),
-    ]).then(([c, pm, cb]) => {
+      fetch("/api/finance/contracts?status=active").then((r) => r.json()),
+    ]).then(([c, pm, cb, ct]) => {
       setCategories(Array.isArray(c) ? c.filter((x: Category) => x.type === "entry") : []);
       setPaymentMethods(Array.isArray(pm) ? pm : []);
       setCashboxes(Array.isArray(cb) ? cb : []);
+      setContracts(Array.isArray(ct) ? ct : []);
     }).catch(() => {});
   }, []);
 
@@ -50,7 +55,7 @@ export default function NovaContaReceberPage() {
       const res = await fetch("/api/finance/receivables", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ description: description.trim(), amount: value, dueDate: dueDate || undefined, categoryId: categoryId || null, paymentMethodId: paymentMethodId || null, cashboxId: cashboxId || null }),
+        body: JSON.stringify({ description: description.trim(), amount: value, dueDate: dueDate || undefined, categoryId: categoryId || null, paymentMethodId: paymentMethodId || null, cashboxId: cashboxId || null, contractId: contractId || null }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) { setError(data.error ?? "Erro ao criar."); setLoading(false); return; }
@@ -93,6 +98,13 @@ export default function NovaContaReceberPage() {
             <select id="recv-cashbox" value={cashboxId} onChange={(e) => setCashboxId(e.target.value)} className="h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 dark:border-neutral-600">
               <option value="">Selecione</option>
               {cashboxes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="recv-contract" className="mb-1 block text-small font-medium text-neutral-700 dark:text-neutral-300">Contrato vinculado (opcional)</label>
+            <select id="recv-contract" value={contractId} onChange={(e) => setContractId(e.target.value)} className="h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 dark:border-neutral-600">
+              <option value="">Selecione</option>
+              {contracts.map((c) => <option key={c.id} value={c.id}>{c.contractNumber}{c.clientName ? ` - ${c.clientName}` : ""}</option>)}
             </select>
           </div>
           <div className="flex gap-3 pt-2">

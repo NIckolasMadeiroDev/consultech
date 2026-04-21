@@ -7,6 +7,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CategoryHierarchicalSelect } from "@/components/finance";
 
 const TIPOS = [
   { value: "entry", label: "Entrada" },
@@ -17,7 +18,7 @@ const TIPOS = [
 ] as const;
 
 type Cashbox = { id: string; name: string };
-type Category = { id: string; name: string; type: string };
+type Category = { id: string; name: string; type: string; parentId: string | null };
 type PaymentMethod = { id: string; name: string };
 
 export default function NovaMovimentacaoPage() {
@@ -29,6 +30,9 @@ export default function NovaMovimentacaoPage() {
   const [paymentMethodId, setPaymentMethodId] = useState("");
   const [cashboxOriginId, setCashboxOriginId] = useState("");
   const [cashboxDestId, setCashboxDestId] = useState("");
+  const [movementDate, setMovementDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,10 +71,6 @@ export default function NovaMovimentacaoPage() {
   const needsCashboxDest = type === "entry" || type === "supply" || type === "transfer";
   const needsCashboxOrigin = type === "exit" || type === "withdraw" || type === "transfer";
 
-  const categoriesFiltered = needsCategory
-    ? categories.filter((c) => c.type === type)
-    : [];
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -92,6 +92,7 @@ export default function NovaMovimentacaoPage() {
           paymentMethodId: paymentMethodId || null,
           cashboxOriginId: cashboxOriginId || null,
           cashboxDestId: cashboxDestId || null,
+          movementAt: movementDate,
         }),
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
@@ -157,6 +158,16 @@ export default function NovaMovimentacaoPage() {
           </div>
 
           <Input
+            id="movementDate"
+            type="date"
+            label="Data da movimentação"
+            value={movementDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => setMovementDate(e.target.value)}
+            required
+          />
+
+          <Input
             id="amount"
             type="text"
             inputMode="decimal"
@@ -183,20 +194,14 @@ export default function NovaMovimentacaoPage() {
               >
                 Categoria
               </label>
-              <select
-                id="categoryId"
+              <CategoryHierarchicalSelect
+                categories={categories}
                 value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:border-neutral-600"
+                onChange={setCategoryId}
+                type={type as "entry" | "exit"}
                 required={needsCategory}
-              >
-                <option value="">Selecione</option>
-                {categoriesFiltered.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+                disabled={loadingOptions}
+              />
             </div>
           )}
 

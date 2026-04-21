@@ -5,13 +5,27 @@ import Link from "next/link";
 import { ArrowLeftRight, Wallet, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FinancialCard, BalanceIndicator } from "@/components/finance";
+import { FinancialCard, BalanceIndicator, GoalCard, OperationalCostCard } from "@/components/finance";
+import { RevenueVsExpensesChart } from "@/components/finance/charts";
 
 type DashboardData = {
   balance: number;
   entriesMonth: number;
   exitsMonth: number;
   monthLabel: string;
+  revenueGoal: {
+    goal: number | null;
+    achieved: number;
+    percentage: number | null;
+    status: "green" | "yellow" | "red" | null;
+  };
+  operationalCost: {
+    predicted: number | null;
+    realized: number;
+    pending: number;
+    remainingBudget: number;
+    status: "green" | "yellow" | "red";
+  };
 };
 
 export default function FinanceDashboardPage() {
@@ -95,6 +109,43 @@ export default function FinanceDashboardPage() {
           icon={<ArrowDownCircle className="h-5 w-5" aria-hidden />}
         />
       </div>
+
+      {(d.revenueGoal.goal !== null || d.operationalCost.predicted !== null) && (
+        <div className="mb-xl grid gap-4 lg:grid-cols-2">
+          {d.revenueGoal.goal !== null && (
+            <GoalCard
+              goal={d.revenueGoal.goal}
+              achieved={d.revenueGoal.achieved}
+              percentage={d.revenueGoal.percentage}
+              status={d.revenueGoal.status}
+              monthLabel={d.monthLabel}
+            />
+          )}
+          {d.operationalCost.predicted !== null && (
+            <OperationalCostCard
+              predicted={d.operationalCost.predicted}
+              realized={d.operationalCost.realized}
+              pending={d.operationalCost.pending}
+              remainingBudget={d.operationalCost.remainingBudget}
+              status={d.operationalCost.status}
+              monthLabel={d.monthLabel}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Gráfico rápido: Últimos 6 meses */}
+      <Card className="mb-xl">
+        <div className="mb-md border-b border-[var(--border)] pb-md">
+          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+            Últimos 6 Meses - Entradas vs Saídas
+          </h2>
+          <p className="text-sm text-[var(--text-secondary)]">
+            Visão rápida da evolução do fluxo de caixa
+          </p>
+        </div>
+        <RevenueVsExpensesChart months={6} />
+      </Card>
 
       <Card padding="lg" className="border-dashed border-neutral-300 dark:border-neutral-600">
         <div className="flex flex-wrap items-center justify-between gap-4">

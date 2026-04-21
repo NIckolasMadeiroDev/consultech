@@ -70,6 +70,7 @@ type CreateTransactionBody = {
   paymentMethodId?: string | null;
   cashboxOriginId?: string | null;
   cashboxDestId?: string | null;
+  movementAt?: string | null;
 };
 
 function parseBody(body: unknown): CreateTransactionBody {
@@ -108,6 +109,7 @@ function parseBody(body: unknown): CreateTransactionBody {
     paymentMethodId: toOptStr(pmId),
     cashboxOriginId: toOptStr(origId),
     cashboxDestId: toOptStr(destId),
+    movementAt: toOptStr(o.movementAt),
   };
 }
 
@@ -129,6 +131,17 @@ export async function POST(req: NextRequest) {
       throw new Error(message);
     }
 
+    let movementAt = new Date();
+    if (data.movementAt) {
+      movementAt = new Date(data.movementAt + "T00:00:00.000Z");
+      if (movementAt > new Date()) {
+        throw new Error("Data da movimentação não pode ser futura");
+      }
+      if (Number.isNaN(movementAt.getTime())) {
+        throw new Error("Data da movimentação inválida");
+      }
+    }
+
     const created = await prisma.transaction.create({
       data: {
         type: data.type,
@@ -138,6 +151,7 @@ export async function POST(req: NextRequest) {
         paymentMethodId: data.paymentMethodId || null,
         cashboxOriginId: data.cashboxOriginId || null,
         cashboxDestId: data.cashboxDestId || null,
+        movementAt,
       },
     });
 

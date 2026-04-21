@@ -66,6 +66,10 @@ const files = [
   "005_form_revision.sql",
   "006_form_paused_message.sql",
   "007_form_prisma_alignment.sql",
+  "008_finance_contracts.sql",
+  "009_finance_goals.sql",
+  "010_finance_events.sql",
+  "011_dashboard_charts.sql",
 ];
 
 async function main() {

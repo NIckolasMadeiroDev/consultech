@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { LayoutDashboard, Home, Search, BookOpen } from "lucide-react";
+import { LayoutDashboard, Home, Search, BookOpen, Users } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/contexts/toast-context";
 import { Navbar, ThemeToggle, AdminMobileDrawer } from "@/components/layout";
@@ -82,6 +82,13 @@ export default function AdminLayout({
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Dashboards
+              </Link>
+              <Link
+                href="/admin/membros"
+                className="inline-flex items-center gap-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              >
+                <Users className="h-4 w-4" />
+                Membros
               </Link>
               <Link
                 href="/tutorial"

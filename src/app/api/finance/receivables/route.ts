@@ -58,8 +58,9 @@ export async function POST(req: NextRequest) {
     const categoryId = body.categoryId && String(body.categoryId).trim() ? String(body.categoryId).trim() : null;
     const paymentMethodId = body.paymentMethodId && String(body.paymentMethodId).trim() ? String(body.paymentMethodId).trim() : null;
     const cashboxId = body.cashboxId && String(body.cashboxId).trim() ? String(body.cashboxId).trim() : null;
+    const contractId = body.contractId && String(body.contractId).trim() ? String(body.contractId).trim() : null;
     const created = await prisma.financeReceivable.create({
-      data: { description, amount, dueDate, status: "pending", categoryId, paymentMethodId, cashboxId },
+      data: { description, amount, dueDate, status: "pending", categoryId, paymentMethodId, cashboxId, contractId },
     });
     const session = await getSession(req);
     const auditRepo = getAuditLogRepository();

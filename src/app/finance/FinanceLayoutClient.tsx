@@ -16,6 +16,9 @@ import {
   MessageCircle,
   X,
   Send,
+  FileSignature,
+  Target,
+  Calendar,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/layout";
 import { cn } from "@/lib/utils";
@@ -31,6 +34,9 @@ const NAV_ITEMS = [
   { href: "/finance/caixas", label: "Caixas", icon: Wallet },
   { href: "/finance/contas-pagar", label: "Contas a Pagar", icon: ArrowDownCircle },
   { href: "/finance/contas-receber", label: "Contas a Receber", icon: ArrowUpCircle },
+  { href: "/finance/contratos", label: "Contratos", icon: FileSignature },
+  { href: "/finance/metas", label: "Metas", icon: Target },
+  { href: "/finance/eventos", label: "Eventos", icon: Calendar },
   { href: "/finance/categorias", label: "Categorias", icon: FolderTree },
   { href: "/finance/formas-pagamento", label: "Formas de Pagamento", icon: CreditCard },
   { href: "/finance/relatorios", label: "Relatórios", icon: BarChart3 },

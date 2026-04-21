@@ -38,6 +38,7 @@ function parseBody(body: unknown) {
     paymentMethodId: toOptStr(o.paymentMethodId),
     cashboxOriginId: toOptStr(o.cashboxOriginId),
     cashboxDestId: toOptStr(o.cashboxDestId),
+    movementAt: toOptStr(o.movementAt),
   };
 }
 
@@ -87,6 +88,18 @@ export async function PATCH(
     }
     const existing = await prisma.transaction.findUnique({ where: { id } });
     if (!existing) throw new Error("Movimentação não encontrada.");
+
+    let movementAt = existing.movementAt;
+    if (data.movementAt) {
+      movementAt = new Date(data.movementAt + "T00:00:00.000Z");
+      if (movementAt > new Date()) {
+        throw new Error("Data da movimentação não pode ser futura");
+      }
+      if (Number.isNaN(movementAt.getTime())) {
+        throw new Error("Data da movimentação inválida");
+      }
+    }
+
     const updated = await prisma.transaction.update({
       where: { id },
       data: {
@@ -97,6 +110,7 @@ export async function PATCH(
         paymentMethodId: data.paymentMethodId || null,
         cashboxOriginId: data.cashboxOriginId || null,
         cashboxDestId: data.cashboxDestId || null,
+        movementAt,
       },
     });
     const session = await getSession(req);

@@ -1,158 +1,288 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { BarChart3 } from "lucide-react";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
-import { MoneyValue } from "@/components/finance";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Download, FileText, TrendingUp, PieChart } from "lucide-react";
+import {
+  RevenueVsExpensesChart,
+  ExpensesByCategoryChart,
+  GoalVsAchievedChart,
+} from "@/components/finance/charts";
+import { exportToFile, type ExportFormat } from "@/lib/finance/export-utils";
 
-type CashflowMonth = { month: string; entries: number; exits: number; balance: number };
-type CategoryRow = { categoryId: string; categoryName: string; type: string; total: number };
+export default function ReportsPage() {
+  const [revenueMonths, setRevenueMonths] = useState(12);
+  const [categoryMonths, setCategoryMonths] = useState(6);
+  const [goalMonths, setGoalMonths] = useState(6);
+  const [exporting, setExporting] = useState(false);
 
-export default function FinanceRelatoriosPage() {
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  const [cashflow, setCashflow] = useState<CashflowMonth[]>([]);
-  const [byCategory, setByCategory] = useState<CategoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Export handlers
+  const handleExportTransactions = async (format: ExportFormat) => {
+    setExporting(true);
+    try {
+      const response = await fetch("/api/finance/export/transactions");
+      if (!response.ok) throw new Error("Erro ao buscar dados");
+      const data = await response.json();
+      exportToFile(data, `transacoes-${new Date().toISOString().slice(0, 10)}`, format);
+    } catch (error) {
+      alert("Erro ao exportar transações");
+      console.error(error);
+    } finally {
+      setExporting(false);
+    }
+  };
 
-  useEffect(() => {
-    const to = new Date();
-    const from = new Date(to.getFullYear(), to.getMonth(), 1);
-    setDateFrom(from.toISOString().slice(0, 10));
-    setDateTo(to.toISOString().slice(0, 10));
-  }, []);
+  const handleExportReceivables = async (format: ExportFormat) => {
+    setExporting(true);
+    try {
+      const response = await fetch("/api/finance/export/receivables");
+      if (!response.ok) throw new Error("Erro ao buscar dados");
+      const data = await response.json();
+      exportToFile(data, `contas-receber-${new Date().toISOString().slice(0, 10)}`, format);
+    } catch (error) {
+      alert("Erro ao exportar contas a receber");
+      console.error(error);
+    } finally {
+      setExporting(false);
+    }
+  };
 
-  useEffect(() => {
-    if (!dateFrom || !dateTo) return;
-    setLoading(true);
-    Promise.all([
-      fetch(`/api/finance/reports/cashflow?dateFrom=${dateFrom}&dateTo=${dateTo}`).then((r) => r.json()),
-      fetch(`/api/finance/reports/by-category?dateFrom=${dateFrom}&dateTo=${dateTo}`).then((r) => r.json()),
-    ])
-      .then(([cf, cat]) => {
-        setCashflow(cf.months ?? []);
-        setByCategory(cat.categories ?? []);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : "Erro"))
-      .finally(() => setLoading(false));
-  }, [dateFrom, dateTo]);
-
-  const formatMonth = (ym: string) => {
-    const [y, m] = ym.split("-");
-    const date = new Date(Number(y), Number(m) - 1, 1);
-    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const handleExportPayables = async (format: ExportFormat) => {
+    setExporting(true);
+    try {
+      const response = await fetch("/api/finance/export/payables");
+      if (!response.ok) throw new Error("Erro ao buscar dados");
+      const data = await response.json();
+      exportToFile(data, `contas-pagar-${new Date().toISOString().slice(0, 10)}`, format);
+    } catch (error) {
+      alert("Erro ao exportar contas a pagar");
+      console.error(error);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
-    <div>
-      <div className="mb-lg flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-lg">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-h2 font-semibold text-[var(--text-primary)]">Relatórios</h1>
-          <p className="mt-1 text-body text-[var(--text-secondary)]">
-            Fluxo de caixa e receitas/despesas por categoria.
+          <h1 className="mb-2 text-display-sm font-semibold text-[var(--text-primary)]">
+            Relatórios e Análises
+          </h1>
+          <p className="text-body text-[var(--text-secondary)]">
+            Visualize gráficos, exporte relatórios e analise o desempenho financeiro.
           </p>
         </div>
       </div>
 
-      <Card padding="md" className="mb-lg">
-        <p className="mb-2 text-small font-medium text-[var(--text-primary)]">Período</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="h-10 rounded-lg border border-neutral-300 bg-[var(--background)] px-3 dark:border-neutral-600"
-          />
-          <span className="text-[var(--text-secondary)]">até</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="h-10 rounded-lg border border-neutral-300 bg-[var(--background)] px-3 dark:border-neutral-600"
-          />
+      {/* Gráfico: Entradas vs Saídas */}
+      <Card>
+        <div className="mb-md flex items-center justify-between border-b border-[var(--border)] pb-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Entradas vs Saídas
+              </h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Evolução mensal do fluxo de caixa
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-[var(--text-secondary)]">Meses:</label>
+            <Input
+              type="number"
+              min="1"
+              max="24"
+              value={revenueMonths}
+              onChange={(e) => setRevenueMonths(Math.max(1, Math.min(24, Number(e.target.value))))}
+              className="w-20"
+            />
+          </div>
         </div>
+        <RevenueVsExpensesChart months={revenueMonths} />
       </Card>
 
-      {loading && (
-        <Card padding="lg">
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
+      {/* Gráfico: Gastos por Categoria */}
+      <Card>
+        <div className="mb-md flex items-center justify-between border-b border-[var(--border)] pb-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 text-red-600">
+              <PieChart className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Top 10 Gastos por Categoria
+              </h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Maiores despesas por categoria
+              </p>
+            </div>
           </div>
-        </Card>
-      )}
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-[var(--text-secondary)]">Meses:</label>
+            <Input
+              type="number"
+              min="1"
+              max="24"
+              value={categoryMonths}
+              onChange={(e) => setCategoryMonths(Math.max(1, Math.min(24, Number(e.target.value))))}
+              className="w-20"
+            />
+          </div>
+        </div>
+        <ExpensesByCategoryChart months={categoryMonths} />
+      </Card>
 
-      {error && (
-        <Card padding="lg" className="border-red-200 dark:border-red-800">
-          <p className="text-body text-red-600 dark:text-red-400">{error}</p>
-        </Card>
-      )}
+      {/* Gráfico: Meta vs Realizado */}
+      <Card>
+        <div className="mb-md flex items-center justify-between border-b border-[var(--border)] pb-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Meta de Faturamento vs Realizado
+              </h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Comparação entre metas e resultados
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-[var(--text-secondary)]">Meses:</label>
+            <Input
+              type="number"
+              min="1"
+              max="12"
+              value={goalMonths}
+              onChange={(e) => setGoalMonths(Math.max(1, Math.min(12, Number(e.target.value))))}
+              className="w-20"
+            />
+          </div>
+        </div>
+        <GoalVsAchievedChart months={goalMonths} />
+      </Card>
 
-      {!loading && !error && (
-        <>
-          <Card padding="lg" className="mb-lg">
-            <h2 className="mb-4 flex items-center gap-2 text-h4 font-semibold text-[var(--text-primary)]">
-              <BarChart3 className="h-5 w-5" /> Fluxo de caixa por mês
-            </h2>
-            {cashflow.length === 0 ? (
-              <p className="text-body text-[var(--text-secondary)]">Nenhuma movimentação no período.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-small">
-                  <thead>
-                    <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                      <th className="p-lg font-medium text-[var(--text-primary)]">Mês</th>
-                      <th className="p-lg text-right font-medium text-[var(--text-primary)]">Entradas</th>
-                      <th className="p-lg text-right font-medium text-[var(--text-primary)]">Saídas</th>
-                      <th className="p-lg text-right font-medium text-[var(--text-primary)]">Saldo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cashflow.map((row) => (
-                      <tr key={row.month} className="border-b border-neutral-100 dark:border-neutral-800">
-                        <td className="p-lg font-medium text-[var(--text-primary)]">{formatMonth(row.month)}</td>
-                        <td className="p-lg text-right font-mono"><MoneyValue value={row.entries} variant="entry" size="table" /></td>
-                        <td className="p-lg text-right font-mono"><MoneyValue value={row.exits} variant="exit" size="table" /></td>
-                        <td className="p-lg text-right font-mono"><MoneyValue value={row.balance} variant={row.balance >= 0 ? "neutral" : "balance-negative"} size="table" /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
+      {/* Exportação de Dados */}
+      <Card>
+        <div className="mb-md border-b border-[var(--border)] pb-md">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100 text-green-600">
+              <Download className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Exportação de Dados
+              </h2>
+              <p className="text-sm text-[var(--text-secondary)]">
+                Exporte relatórios em diferentes formatos
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <Card padding="lg">
-            <h2 className="mb-4 text-h4 font-semibold text-[var(--text-primary)]">Por categoria</h2>
-            {byCategory.length === 0 ? (
-              <p className="text-body text-[var(--text-secondary)]">Nenhuma movimentação com categoria no período.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-small">
-                  <thead>
-                    <tr className="border-b border-neutral-200 dark:border-neutral-700">
-                      <th className="p-lg font-medium text-[var(--text-primary)]">Categoria</th>
-                      <th className="p-lg font-medium text-[var(--text-primary)]">Tipo</th>
-                      <th className="p-lg text-right font-medium text-[var(--text-primary)]">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {byCategory.map((row) => (
-                      <tr key={row.categoryId} className="border-b border-neutral-100 dark:border-neutral-800">
-                        <td className="p-lg font-medium text-[var(--text-primary)]">{row.categoryName}</td>
-                        <td className="p-lg text-[var(--text-secondary)]">{row.type === "entry" ? "Receita" : "Despesa"}</td>
-                        <td className="p-lg text-right font-mono">
-                          <MoneyValue value={row.total} variant={row.total >= 0 ? "entry" : "exit"} size="table" />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-        </>
-      )}
+        <div className="space-y-md">
+          {/* Transações */}
+          <div className="rounded-lg border border-[var(--border)] p-md">
+            <h3 className="mb-2 font-semibold text-[var(--text-primary)]">Movimentações</h3>
+            <p className="mb-md text-sm text-[var(--text-secondary)]">
+              Exportar todas as transações do sistema
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleExportTransactions("xlsx")}
+                disabled={exporting}
+                variant="outline"
+              >
+                Excel (.xlsx)
+              </Button>
+              <Button
+                onClick={() => handleExportTransactions("csv")}
+                disabled={exporting}
+                variant="outline"
+              >
+                CSV (.csv)
+              </Button>
+              <Button
+                onClick={() => handleExportTransactions("json")}
+                disabled={exporting}
+                variant="outline"
+              >
+                JSON (.json)
+              </Button>
+            </div>
+          </div>
+
+          {/* Contas a Receber */}
+          <div className="rounded-lg border border-[var(--border)] p-md">
+            <h3 className="mb-2 font-semibold text-[var(--text-primary)]">Contas a Receber</h3>
+            <p className="mb-md text-sm text-[var(--text-secondary)]">
+              Exportar todas as contas a receber
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleExportReceivables("xlsx")}
+                disabled={exporting}
+                variant="outline"
+              >
+                Excel (.xlsx)
+              </Button>
+              <Button
+                onClick={() => handleExportReceivables("csv")}
+                disabled={exporting}
+                variant="outline"
+              >
+                CSV (.csv)
+              </Button>
+              <Button
+                onClick={() => handleExportReceivables("json")}
+                disabled={exporting}
+                variant="outline"
+              >
+                JSON (.json)
+              </Button>
+            </div>
+          </div>
+
+          {/* Contas a Pagar */}
+          <div className="rounded-lg border border-[var(--border)] p-md">
+            <h3 className="mb-2 font-semibold text-[var(--text-primary)]">Contas a Pagar</h3>
+            <p className="mb-md text-sm text-[var(--text-secondary)]">
+              Exportar todas as contas a pagar
+            </p>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleExportPayables("xlsx")}
+                disabled={exporting}
+                variant="outline"
+              >
+                Excel (.xlsx)
+              </Button>
+              <Button
+                onClick={() => handleExportPayables("csv")}
+                disabled={exporting}
+                variant="outline"
+              >
+                CSV (.csv)
+              </Button>
+              <Button
+                onClick={() => handleExportPayables("json")}
+                disabled={exporting}
+                variant="outline"
+              >
+                JSON (.json)
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

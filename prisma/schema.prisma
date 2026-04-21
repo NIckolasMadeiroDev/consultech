@@ -32,25 +32,26 @@ model FormFolder {
 }
 
 model Form {
-  id             String      @id @default(uuid()) @db.Uuid
-  title          String
-  description    String?
-  closingMessage String?     @map("closing_message")
-  pausedMessage  String?     @map("paused_message")
-  folderId       String?     @map("folder_id") @db.Uuid
-  isTemplate     Boolean     @default(false) @map("is_template")
-  status         String      @default("draft")
-  version        Int         @default(1)
-  slug           String?     @unique
-  allowAnonymous Boolean     @default(false) @map("allow_anonymous")
-  createdBy      String?     @map("created_by") @db.Uuid
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
-  admin          Admin?      @relation(fields: [createdBy], references: [id])
-  folderRef      FormFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  questions      Question[]
-  responses      Response[]
-  formRevisions  FormRevision[]
+  id              String           @id @default(uuid()) @db.Uuid
+  title           String
+  description     String?
+  closingMessage  String?          @map("closing_message")
+  pausedMessage   String?          @map("paused_message")
+  folderId        String?          @map("folder_id") @db.Uuid
+  isTemplate      Boolean          @default(false) @map("is_template")
+  status          String           @default("draft")
+  version         Int              @default(1)
+  slug            String?          @unique
+  allowAnonymous  Boolean          @default(false) @map("allow_anonymous")
+  createdBy       String?          @map("created_by") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  admin           Admin?           @relation(fields: [createdBy], references: [id])
+  folderRef       FormFolder?      @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  questions       Question[]
+  responses       Response[]
+  formRevisions   FormRevision[]
+  dashboardCharts DashboardChart[]
 }
 
 model FormRevision {
@@ -69,19 +70,26 @@ model FormRevision {
 }
 
 model Question {
-  id                  String   @id @default(uuid()) @db.Uuid
-  formId              String   @map("form_id") @db.Uuid
+  id                  String           @id @default(uuid()) @db.Uuid
+  formId              String           @map("form_id") @db.Uuid
   type                String
   text                String
-  required            Boolean  @default(false)
-  orderIndex          Int      @default(0) @map("order_index")
+  required            Boolean          @default(false)
+  orderIndex          Int              @default(0) @map("order_index")
   options             Json?
-  scaleMin            Int?     @map("scale_min")
-  scaleMax            Int?     @map("scale_max")
-  conditionQuestionId String?  @map("condition_question_id") @db.Uuid
-  conditionOperator   String?  @map("condition_operator")
-  conditionValue      Json?    @map("condition_value")
-  form                Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  scaleMin            Int?             @map("scale_min")
+  scaleMax            Int?             @map("scale_max")
+  conditionQuestionId String?          @map("condition_question_id") @db.Uuid
+  conditionOperator   String?          @map("condition_operator")
+  conditionValue      Json?            @map("condition_value")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+  form                Form             @relation(fields: [formId], references: [id], onDelete: Cascade)
+  answers             Answer[]
+  dashboardCharts     DashboardChart[]
+
+  @@index([formId, orderIndex])
+  @@map("form_question")
 }
 
 model Respondent {
@@ -113,13 +121,14 @@ model Answer {
 }
 
 model Dashboard {
-  id        String   @id @default(uuid()) @db.Uuid
+  id        String           @id @default(uuid()) @db.Uuid
   title     String
-  createdBy String?  @map("created_by") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  formIds   Json     @default("[]") @map("form_ids")
-  admin     Admin?   @relation(fields: [createdBy], references: [id])
+  createdBy String?          @map("created_by") @db.Uuid
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  formIds   Json             @default("[]") @map("form_ids")
+  admin     Admin?           @relation(fields: [createdBy], references: [id])
+  charts    DashboardChart[]
 }
 
 model AiContextChunk {
@@ -248,8 +257,97 @@ model FinanceReceivable {
   category        FinanceCategory? @relation(fields: [categoryId], references: [id])
   paymentMethodId String?   @map("payment_method_id") @db.Uuid
   paymentMethod   FinancePaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  contractId      String?   @map("contract_id") @db.Uuid
+  contract        FinanceContract? @relation(fields: [contractId], references: [id])
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
   @@map("finance_receivable")
+}
+
+model FinanceContract {
+  id             String    @id @default(uuid()) @db.Uuid
+  contractNumber String    @unique @map("contract_number")
+  clientName     String?   @map("client_name")
+  totalValue     Decimal   @db.Decimal(15, 2) @map("total_value")
+  startDate      DateTime  @db.Date @map("start_date")
+  endDate        DateTime? @db.Date @map("end_date")
+  status         String    @default("active") // active | completed | cancelled
+  description    String?
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  receivables    FinanceReceivable[]
+
+  @@map("finance_contract")
+}
+
+model FinanceRevenueGoal {
+  id          String   @id @default(uuid()) @db.Uuid
+  year        Int
+  month       Int
+  goalValue   Decimal  @db.Decimal(15, 2) @map("goal_value")
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([year, month])
+  @@map("finance_revenue_goal")
+}
+
+model FinanceOperationalCost {
+  id            String   @id @default(uuid()) @db.Uuid
+  year          Int
+  month         Int
+  predictedCost Decimal  @db.Decimal(15, 2) @map("predicted_cost")
+  description   String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@unique([year, month])
+  @@map("finance_operational_cost")
+}
+
+model FinanceEvent {
+  id          String                  @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  eventDate   DateTime                @db.Date @map("event_date")
+  status      String                  @default("planning") // planning | approved | in_progress | completed | cancelled
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  scenarios   FinanceEventScenario[]
+
+  @@map("finance_event")
+}
+
+model FinanceEventScenario {
+  id            String        @id @default(uuid()) @db.Uuid
+  eventId       String        @map("event_id") @db.Uuid
+  event         FinanceEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  scenarioName  String        @map("scenario_name")
+  membersCount  Int           @map("members_count")
+  costPerMember Decimal       @db.Decimal(15, 2) @map("cost_per_member")
+  totalCost     Decimal       @db.Decimal(15, 2) @map("total_cost")
+  notes         String?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@map("finance_event_scenario")
+}
+
+model DashboardChart {
+  id           String    @id @default(uuid()) @db.Uuid
+  dashboardId  String    @map("dashboard_id") @db.Uuid
+  formId       String    @map("form_id") @db.Uuid
+  questionId   String    @map("question_id") @db.Uuid
+  chartType    String    @map("chart_type") // bar | line | pie
+  title        String
+  displayOrder Int       @default(0) @map("display_order")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  dashboard    Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  form         Form      @relation(fields: [formId], references: [id], onDelete: Cascade)
+  question     Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("dashboard_chart")
 }
