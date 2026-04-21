@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -43,11 +43,7 @@ export function CustomChartRenderer({
   const [data, setData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadChartData();
-  }, [chartId, dashboardId]);
-
-  const loadChartData = async () => {
+  const loadChartData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/dashboards/${dashboardId}/charts/${chartId}/data`);
@@ -60,7 +56,11 @@ export function CustomChartRenderer({
     } finally {
       setLoading(false);
     }
-  };
+  }, [chartId, dashboardId]);
+
+  useEffect(() => {
+    void loadChartData();
+  }, [loadChartData]);
 
   if (loading) {
     return (
