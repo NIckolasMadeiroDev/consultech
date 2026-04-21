@@ -253,11 +253,24 @@ describe("Fluxo: formulários e respostas", () => {
 
   describe("6. Enviar resposta", () => {
     it("POST /api/responses/submit aceita payload com formId, respondent e answers", async () => {
+      vi.mocked(getQuestionRepository).mockReturnValue({
+        findByFormId: vi.fn().mockResolvedValue([
+          {
+            id: questionId,
+            formId,
+            type: "short_text",
+            text: "P1",
+            required: true,
+            orderIndex: 0,
+          },
+        ]),
+      } as never);
       vi.mocked(getFormRepository).mockReturnValue({
         findById: vi.fn().mockResolvedValue({
           id: formId,
           status: "active",
           allowAnonymous: false,
+          sectionVisibilityRules: [],
         }),
       } as never);
       vi.mocked(getRespondentRepository).mockReturnValue({

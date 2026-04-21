@@ -11,6 +11,7 @@ export function useFormResponses(
     endDate?: string;
     respondentSearch?: string;
     answerSearch?: string;
+    department?: string;
   }
 ) {
   const [data, setData] = useState<Array<{
@@ -24,6 +25,7 @@ export function useFormResponses(
 
   const filtersKey = JSON.stringify({
     a: filters?.answerSearch,
+    d: filters?.department,
     e: filters?.endDate,
     r: filters?.respondentSearch,
     s: filters?.startDate,

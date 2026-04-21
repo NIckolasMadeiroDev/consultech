@@ -66,4 +66,22 @@ describe("submitResponseSchema", () => {
     expect(result.respondent).toBeUndefined();
     expect(result.answers).toHaveLength(1);
   });
+
+  it("aceita anexos opcionais", () => {
+    const result = submitResponseSchema.parse({
+      formId: "550e8400-e29b-41d4-a716-446655440000",
+      answers: [{ questionId: "550e8400-e29b-41d4-a716-446655440001", value: "https://x.test/f" }],
+      attachments: [
+        {
+          questionId: "550e8400-e29b-41d4-a716-446655440001",
+          storagePath: "responses/550e8400-e29b-41d4-a716-446655440000/550e8400-e29b-41d4-a716-446655440001/a.pdf",
+          publicUrl: "https://x.test/a.pdf",
+          sizeBytes: 12,
+          mimeType: "application/pdf",
+          originalFilename: "a.pdf",
+        },
+      ],
+    });
+    expect(result.attachments).toHaveLength(1);
+  });
 });

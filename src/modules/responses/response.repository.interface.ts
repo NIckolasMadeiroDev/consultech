@@ -1,11 +1,25 @@
 import type { Response, Answer } from "@/core/entities";
 import type { ResponseFilters } from "@/types";
+import type { ResponseAttachmentInput } from "./response-attachment.types";
 
 export interface SubmitResponseInput {
   formId: string;
-  respondentId: string;
+  respondentId: string | null;
   answers: Array<{ questionId: string; value: string | number | boolean | string[] }>;
+  attachments?: ResponseAttachmentInput[];
+  submissionMetadata?: Record<string, unknown> | null;
 }
+
+export type { ResponseAttachmentInput };
+
+export type ResponseAttachmentRecord = {
+  questionId: string;
+  storagePath: string;
+  publicUrl: string;
+  mimeType: string;
+  sizeBytes: number;
+  originalFilename: string;
+};
 
 export interface IResponseRepository {
   create(data: SubmitResponseInput): Promise<Response>;
@@ -16,6 +30,7 @@ export interface IResponseRepository {
     opts: { filters?: ResponseFilters; page: number; limit: number }
   ): Promise<{ data: Response[]; total: number }>;
   getAnswersByResponseId(responseId: string): Promise<Answer[]>;
+  getAttachmentsByResponseId(responseId: string): Promise<ResponseAttachmentRecord[]>;
   getSummaryByFormId(
     formId: string,
     filters?: ResponseFilters

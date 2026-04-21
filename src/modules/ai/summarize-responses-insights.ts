@@ -30,6 +30,8 @@ export function responseFiltersFromInsightsBody(
   if (rs) f.respondentSearch = rs;
   const av = body.answerSearch?.trim();
   if (av) f.answerValue = av;
+  const dept = body.department?.trim();
+  if (dept) f.department = dept;
   return Object.keys(f).length > 0 ? f : undefined;
 }
 

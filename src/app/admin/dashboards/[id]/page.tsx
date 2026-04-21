@@ -12,17 +12,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
-import {
-  FileText,
-  MessageSquare,
-  Trash2,
-  Pencil,
-  ExternalLink,
-  ChevronLeft,
-  Percent,
-  Clock,
-  ListOrdered,
-} from "lucide-react";
+import { Trash2, Pencil, ChevronLeft } from "lucide-react";
+import { DashboardResponseContentSection } from "@/components/dashboards/dashboard-response-content-section";
+import { DashboardFlowMetricsSection } from "@/components/dashboards/dashboard-flow-metrics-section";
 
 type FormWithSummary = {
   formId: string;
@@ -51,6 +43,10 @@ function getPeriodParams(period: PeriodKey): { startDate?: string; endDate?: str
     startDate: start.toISOString(),
     endDate: end.toISOString(),
   };
+}
+
+function getPeriodLabel(period: PeriodKey): string {
+  return PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? "";
 }
 
 function DashboardDetailSkeleton() {
@@ -96,9 +92,8 @@ export default function DashboardDetailPage() {
     }
     let cancelled = false;
     setDetailsLoading(true);
-    const params = getPeriodParams(period);
     api
-      .fetchDashboardSummary(id, userId, params)
+      .fetchDashboardSummary(id, userId, getPeriodParams(period))
       .then((summary) => {
         if (!cancelled) setFormDetails(summary.forms);
       })
@@ -120,9 +115,8 @@ export default function DashboardDetailPage() {
     }
     let cancelled = false;
     setAnalyticsLoading(true);
-    const p = getPeriodParams(period);
     api
-      .fetchDashboardAnalytics(id, userId, p)
+      .fetchDashboardAnalytics(id, userId, getPeriodParams(period))
       .then((data) => {
         if (!cancelled) setAnalytics(data);
       })
@@ -141,6 +135,9 @@ export default function DashboardDetailPage() {
     () => formDetails.reduce((acc, f) => acc + f.count, 0),
     [formDetails]
   );
+
+  const periodParams = useMemo(() => getPeriodParams(period), [period]);
+  const periodLabel = useMemo(() => getPeriodLabel(period), [period]);
 
   const openEditModal = useCallback(() => {
     if (dashboard) {
@@ -251,190 +248,45 @@ export default function DashboardDetailPage() {
         </div>
       </div>
 
-      <div className="mb-lg grid gap-md sm:grid-cols-2">
-        <Card className="flex items-center gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
-            <FileText className="h-6 w-6 text-primary-600 dark:text-primary-400" aria-hidden />
-          </div>
-          <div>
-            <p className="text-caption text-[var(--text-secondary)]">Formulários</p>
-            <p className="text-h4 text-[var(--text-primary)]">{dashboard.formIds.length}</p>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
-            <MessageSquare className="h-6 w-6 text-primary-600 dark:text-primary-400" aria-hidden />
-          </div>
-          <div>
-            <p className="text-caption text-[var(--text-secondary)]">Respostas no total</p>
-            <p className="text-h4 text-[var(--text-primary)]">
-              {detailsLoading ? "—" : totalResponses}
-            </p>
-          </div>
-        </Card>
-      </div>
-
       <div className="mb-lg">
-        <h2 className="mb-md text-h4 text-[var(--text-primary)]">Painéis prontos</h2>
-        <div className="grid gap-md lg:grid-cols-3">
-          <Card className="flex items-start gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-              <Percent className="h-6 w-6 text-emerald-700 dark:text-emerald-400" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="text-caption text-[var(--text-secondary)]">Taxa de conclusão média</p>
-              <p className="mt-1 text-h4 text-[var(--text-primary)]">
-                {analyticsLoading
-                  ? "—"
-                  : analytics?.avgCompletionRate != null
-                    ? `${(analytics.avgCompletionRate * 100).toFixed(1)}%`
-                    : "—"}
-              </p>
-              <p className="mt-2 text-caption text-[var(--text-secondary)]">
-                Média do preenchimento das perguntas visíveis por resposta (condicionais consideradas).
-              </p>
-            </div>
-          </Card>
-          <Card className="flex items-start gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
-              <Clock className="h-6 w-6 text-amber-800 dark:text-amber-400" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="text-caption text-[var(--text-secondary)]">Tempo médio por resposta</p>
-              <p className="mt-1 text-h4 text-[var(--text-primary)]">—</p>
-              <p className="mt-2 text-caption text-[var(--text-secondary)]">
-                {analytics?.avgTimeHint ??
-                  "Quando houver timestamps por etapa, o tempo médio aparecerá aqui."}
-              </p>
-            </div>
-          </Card>
-          <Card className="flex items-start gap-4 transition-shadow duration-150 ease-out hover:shadow-md" padding="md">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-sky-100 dark:bg-sky-900/30">
-              <ListOrdered className="h-6 w-6 text-sky-800 dark:text-sky-400" aria-hidden />
-            </div>
-            <div className="min-w-0">
-              <p className="text-caption text-[var(--text-secondary)]">Abandono por pergunta</p>
-              <p className="mt-1 text-h4 text-[var(--text-primary)]">
-                {analyticsLoading
-                  ? "—"
-                  : analytics && analytics.abandonmentByQuestion.length > 0
-                    ? `${analytics.abandonmentByQuestion.length} perguntas`
-                    : "—"}
-              </p>
-              <p className="mt-2 text-caption text-[var(--text-secondary)]">
-                Estimativa de não resposta entre quem viu a pergunta (útil para opcionais e funil).
-              </p>
-            </div>
-          </Card>
-        </div>
+        <label className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <span className="text-small font-medium text-[var(--text-primary)]">Período de análise</span>
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as PeriodKey)}
+            className="w-full max-w-xs rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] dark:border-neutral-600 sm:w-auto"
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="mt-2 text-caption text-[var(--text-secondary)]">
+          Gráficos, agregações e exportações usam {periodLabel.toLowerCase()}.
+        </p>
       </div>
 
-      {analytics && analytics.abandonmentByQuestion.length > 0 && (
-        <Card className="mb-lg" padding="lg">
-          <h2 className="text-h4 text-[var(--text-primary)]">Abandono estimado por pergunta</h2>
-          <p className="mt-1 text-caption text-[var(--text-secondary)]">
-            Para cada pergunta: entre respostas em que ela era visível, percentual que não preencheu.
-          </p>
-          <div className="mt-lg overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left text-body">
-              <thead>
-                <tr className="border-b border-neutral-200 text-caption text-[var(--text-secondary)] dark:border-neutral-700">
-                  <th className="pb-2 pr-4 font-medium">Formulário</th>
-                  <th className="pb-2 pr-4 font-medium">Pergunta</th>
-                  <th className="pb-2 pr-4 font-medium">Responderam</th>
-                  <th className="pb-2 font-medium">Abandono est.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analytics.abandonmentByQuestion.map((row) => (
-                  <tr
-                    key={`${row.formId}-${row.questionId}`}
-                    className="border-b border-neutral-100 dark:border-neutral-800"
-                  >
-                    <td className="py-2 pr-4 text-[var(--text-primary)]">{row.formTitle}</td>
-                    <td className="max-w-xs py-2 pr-4 text-[var(--text-primary)]">
-                      <span className="line-clamp-2">{row.questionText}</span>
-                    </td>
-                    <td className="py-2 pr-4 text-[var(--text-secondary)]">
-                      {row.responseRatePercent}% ({row.answeredCount}/{row.eligibleResponses})
-                    </td>
-                    <td className="py-2 text-[var(--text-primary)]">
-                      {row.abandonmentEstimatePercent}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <DashboardResponseContentSection
+        forms={analytics?.responseContentByForm ?? []}
+        userId={userId}
+        startDate={periodParams.startDate}
+        endDate={periodParams.endDate}
+        loading={analyticsLoading}
+      />
 
-      <Card padding="lg">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-h4 text-[var(--text-primary)]">Formulários vinculados</h2>
-          <label className="flex items-center gap-2 text-small text-[var(--text-secondary)]">
-            <span>Período:</span>
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as PeriodKey)}
-              className="rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-1.5 text-body text-[var(--text-primary)] dark:border-neutral-600"
-            >
-              {PERIOD_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {(() => {
-          if (detailsLoading && formDetails.length === 0) {
-            return (
-              <ul className="pt-lg space-y-2">
-                {dashboard.formIds.map((formId) => (
-                  <li key={formId} className="h-14 animate-pulse rounded-lg bg-neutral-100 dark:bg-neutral-800" />
-                ))}
-              </ul>
-            );
-          }
-          if (formDetails.length > 0) {
-            return (
-              <ul className="pt-lg space-y-3">
-                {formDetails.map((f) => (
-                  <li key={f.formId}>
-                    <Card className="flex flex-wrap items-center justify-between gap-3" padding="md">
-                      <div className="min-w-0 flex-1">
-                        <Link
-                          href={`/admin/forms/${f.formId}/responses`}
-                          className="font-medium text-primary-600 hover:underline dark:text-primary-400"
-                        >
-                          {f.title}
-                        </Link>
-                        <p className="mt-1 text-caption text-[var(--text-secondary)]">
-                          {f.count} resposta(s)
-                          {f.lastSubmittedAt
-                            ? ` · Última em ${new Date(f.lastSubmittedAt).toLocaleDateString("pt-BR")}`
-                            : ""}
-                        </p>
-                      </div>
-                      <Link href={`/admin/forms/${f.formId}/responses`}>
-                        <Button variant="ghost" size="sm" leftIcon={<ExternalLink className="h-4 w-4" />}>
-                          Ver respostas
-                        </Button>
-                      </Link>
-                    </Card>
-                  </li>
-                ))}
-              </ul>
-            );
-          }
-          return (
-            <p className="pt-lg text-body text-[var(--text-secondary)]">
-              Nenhum formulário vinculado. Use Editar para adicionar.
-            </p>
-          );
-        })()}
-      </Card>
+      <DashboardFlowMetricsSection
+        defaultCollapsed={analytics?.hideAbandonmentByDefault ?? false}
+        analytics={analytics}
+        analyticsLoading={analyticsLoading}
+        dashboardTitle={dashboard.title}
+        dashboardFormIds={dashboard.formIds}
+        formDetails={formDetails}
+        detailsLoading={detailsLoading}
+        totalResponses={totalResponses}
+        periodLabel={periodLabel}
+      />
 
       {editModal && (
         <Modal

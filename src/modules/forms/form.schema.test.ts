@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createFormSchema } from "./form.schema";
+import { createFormSchema, updateFormSchema } from "./form.schema";
 
 describe("createFormSchema", () => {
   it("valida payload mínimo com título e uma pergunta", () => {
@@ -173,5 +173,108 @@ describe("createFormSchema", () => {
       questions: [{ type: "short_text", text: "P1", required: false, orderIndex: 0 }],
     });
     expect(result.initialStatus).toBe("active");
+  });
+
+  it("aceita bloco de texto formatado com HTML", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      questions: [
+        {
+          type: "text_block",
+          text: "Nota",
+          required: false,
+          orderIndex: 0,
+          contentHtml: "<p>Olá <strong>mundo</strong></p>",
+        },
+        { type: "short_text", text: "Nome?", required: true, orderIndex: 1 },
+      ],
+    });
+    expect(result.questions[0].type).toBe("text_block");
+    expect(result.questions[0].contentHtml).toContain("<p>");
+  });
+
+  it("rejeita formulário só com blocos sem pergunta respondível", () => {
+    expect(() =>
+      createFormSchema.parse({
+        title: "Form",
+        questions: [
+          {
+            type: "text_block",
+            text: "A",
+            required: false,
+            orderIndex: 0,
+            contentHtml: "<p>x</p>",
+          },
+        ],
+      })
+    ).toThrow();
+  });
+
+  it("aceita campos de descrição e ajuda nas perguntas", () => {
+    const result = createFormSchema.parse({
+      title: "Form",
+      questions: [
+        {
+          type: "section",
+          text: "Bloco",
+          required: false,
+          orderIndex: 0,
+          sectionTitle: "Título visível",
+          sectionDescription: "Texto da secção.",
+        },
+        {
+          type: "short_text",
+          text: "Nome?",
+          required: true,
+          orderIndex: 1,
+          helpText: "Como no documento.",
+          placeholder: "Ex.: Maria Silva",
+        },
+      ],
+    });
+    expect(result.questions[0].sectionTitle).toBe("Título visível");
+    expect(result.questions[0].sectionDescription).toBe("Texto da secção.");
+    expect(result.questions[1].helpText).toBe("Como no documento.");
+    expect(result.questions[1].placeholder).toBe("Ex.: Maria Silva");
+  });
+});
+
+describe("updateFormSchema", () => {
+  it("aceita questions com campos opcionais de descrição", () => {
+    const result = updateFormSchema.parse({
+      title: "Form upd",
+      questions: [
+        {
+          id: "00000000-0000-4000-8000-000000000001",
+          type: "short_text",
+          text: "P1",
+          required: false,
+          orderIndex: 0,
+          sectionTitle: null,
+          sectionDescription: null,
+          helpText: "Ajuda",
+          placeholder: null,
+        },
+      ],
+    });
+    expect(result.questions?.[0].helpText).toBe("Ajuda");
+  });
+
+  it("rejeita helpText acima do limite", () => {
+    const long = "x".repeat(2001);
+    expect(() =>
+      updateFormSchema.parse({
+        title: "Form upd",
+        questions: [
+          {
+            type: "short_text",
+            text: "P1",
+            required: false,
+            orderIndex: 0,
+            helpText: long,
+          },
+        ],
+      })
+    ).toThrow();
   });
 });

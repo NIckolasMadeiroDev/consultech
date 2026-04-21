@@ -1,12 +1,16 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
 import type { Response, Answer } from "@/core/entities";
 import type { ResponseFilters } from "@/types";
-import type { SubmitResponseInput, IResponseRepository } from "../response.repository.interface";
+import type {
+  SubmitResponseInput,
+  IResponseRepository,
+  ResponseAttachmentRecord,
+} from "../response.repository.interface";
 
 function toResponseEntity(row: {
   id: string;
   formId: string;
-  respondentId: string;
+  respondentId: string | null;
   submittedAt: Date;
 }): Response {
   return {
@@ -38,29 +42,36 @@ export class PrismaResponseRepository implements IResponseRepository {
     formId: string,
     filters?: ResponseFilters
   ): Promise<Prisma.ResponseWhereInput> {
-    const where: Prisma.ResponseWhereInput = { formId };
+    const parts: Prisma.ResponseWhereInput[] = [{ formId }];
     if (filters?.respondentId) {
-      where.respondentId = filters.respondentId;
+      parts.push({ respondentId: filters.respondentId });
     }
     if (filters?.startDate ?? filters?.endDate) {
-      where.submittedAt = {};
-      if (filters.startDate) {
-        (where.submittedAt as { gte?: Date }).gte = filters.startDate;
-      }
-      if (filters.endDate) {
-        (where.submittedAt as { lte?: Date }).lte = filters.endDate;
-      }
+      const submittedAt: { gte?: Date; lte?: Date } = {};
+      if (filters.startDate) submittedAt.gte = filters.startDate;
+      if (filters.endDate) submittedAt.lte = filters.endDate;
+      parts.push({ submittedAt });
     }
     const rs = filters?.respondentSearch?.trim();
+    const dept = filters?.department?.trim();
     if (rs) {
-      where.respondent = {
-        OR: [
-          { name: { contains: rs, mode: "insensitive" } },
-          { email: { contains: rs, mode: "insensitive" } },
-          { employeeId: { contains: rs, mode: "insensitive" } },
-          { department: { contains: rs, mode: "insensitive" } },
-        ],
-      };
+      parts.push({
+        respondent: {
+          OR: [
+            { name: { contains: rs, mode: "insensitive" } },
+            { email: { contains: rs, mode: "insensitive" } },
+            { employeeId: { contains: rs, mode: "insensitive" } },
+            { department: { contains: rs, mode: "insensitive" } },
+          ],
+        },
+      });
+    }
+    if (dept) {
+      parts.push({
+        respondent: {
+          is: { department: { equals: dept, mode: "insensitive" } },
+        },
+      });
     }
     const av = filters?.answerValue?.trim();
     if (av) {
@@ -73,9 +84,12 @@ export class PrismaResponseRepository implements IResponseRepository {
           AND a.value::text ILIKE ${pattern}
       `;
       const ids = rows.map((r) => r.id);
-      where.id = { in: ids.length > 0 ? ids : [] };
+      parts.push({ id: { in: ids.length > 0 ? ids : [] } });
     }
-    return where;
+    if (parts.length === 1) {
+      return parts[0] as Prisma.ResponseWhereInput;
+    }
+    return { AND: parts };
   }
 
   async create(data: SubmitResponseInput): Promise<Response> {
@@ -83,12 +97,29 @@ export class PrismaResponseRepository implements IResponseRepository {
       data: {
         formId: data.formId,
         respondentId: data.respondentId,
+        submissionMetadata:
+          data.submissionMetadata === undefined || data.submissionMetadata === null
+            ? undefined
+            : (data.submissionMetadata as object),
         answers: {
           create: data.answers.map((a) => ({
             questionId: a.questionId,
             value: a.value as object,
           })),
         },
+        attachments:
+          data.attachments && data.attachments.length > 0
+            ? {
+                create: data.attachments.map((a) => ({
+                  questionId: a.questionId,
+                  storagePath: a.storagePath,
+                  publicUrl: a.publicUrl,
+                  mimeType: a.mimeType,
+                  sizeBytes: BigInt(a.sizeBytes),
+                  originalFilename: a.originalFilename,
+                })),
+              }
+            : undefined,
       },
     });
     return toResponseEntity(response);
@@ -132,6 +163,20 @@ export class PrismaResponseRepository implements IResponseRepository {
       where: { responseId },
     });
     return rows.map(toAnswerEntity);
+  }
+
+  async getAttachmentsByResponseId(responseId: string): Promise<ResponseAttachmentRecord[]> {
+    const rows = await this.prisma.responseAttachment.findMany({
+      where: { responseId },
+    });
+    return rows.map((r) => ({
+      questionId: r.questionId,
+      storagePath: r.storagePath,
+      publicUrl: r.publicUrl,
+      mimeType: r.mimeType,
+      sizeBytes: Number(r.sizeBytes),
+      originalFilename: r.originalFilename,
+    }));
   }
 
   async getSummaryByFormId(

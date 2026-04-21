@@ -1,4 +1,5 @@
 import type { Question } from "@/core/entities/question.entity";
+import { acceptsAnswerValue } from "@/lib/form-question-kinds";
 import type { QuestionType } from "@/types";
 
 export type ResponseAnswersOnly = {
@@ -79,7 +80,7 @@ function collectNumericSamples(type: QuestionType, value: unknown): number | nul
 }
 
 function collectTextSnippet(type: QuestionType, value: unknown, snippetMaxLen: number): string | null {
-  if (type !== "short_text" && type !== "long_text") return null;
+  if (type !== "short_text" && type !== "long_text" && type !== "file_upload") return null;
   if (isEmptyValue(value)) return null;
   const raw = typeof value === "string" ? value : String(value);
   const redacted = redactAndTruncate(raw, snippetMaxLen);
@@ -103,7 +104,9 @@ export function buildInsightsAggregate(
 ): InsightsAggregate {
   const maxSnippets = Math.min(20, Math.max(4, opts?.maxSnippetsPerQuestion ?? DEFAULT_MAX_SNIPPETS));
   const snippetMaxLen = Math.min(200, Math.max(40, opts?.snippetMaxLen ?? DEFAULT_SNIPPET_LEN));
-  const ordered = [...questions].filter((q) => q.type !== "section").sort((a, b) => a.orderIndex - b.orderIndex);
+  const ordered = [...questions]
+    .filter((q) => acceptsAnswerValue(q.type))
+    .sort((a, b) => a.orderIndex - b.orderIndex);
   const sampleSize = responses.length;
   const sampleIsPartial = totalMatchingResponses > sampleSize;
 
@@ -121,7 +124,7 @@ export function buildInsightsAggregate(
       if (!isEmptyValue(a?.value)) answered += 1;
     }
 
-    if (q.type === "short_text" || q.type === "long_text") {
+    if (q.type === "short_text" || q.type === "long_text" || q.type === "file_upload") {
       const seen = new Set<string>();
       const snippets: string[] = [];
       const step = responses.length <= maxSnippets ? 1 : Math.ceil(responses.length / maxSnippets);

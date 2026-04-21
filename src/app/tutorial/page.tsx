@@ -213,15 +213,18 @@ export default function TutorialPage() {
 
         <Section id="dashboards" title="Dashboards" icon={LayoutDashboard}>
           <p className="mb-lg text-body text-[var(--text-secondary)]">
-            Dashboards permitem reunir métricas de vários formulários em um único lugar: total de formulários vinculados e total de respostas (com filtro por período).
+            Dashboards reúnem vários formulários e mostram <strong className="text-[var(--text-primary)]">conteúdo analítico</strong> das respostas (gráficos e amostras por pergunta), além de métricas de fluxo (conclusão, abandono) e exportação tabular alinhada ao período escolhido.
           </p>
           <Step number={1} title="Criar um dashboard">
             Na lista de dashboards, preencha o campo <strong>Título</strong> e marque os formulários que deseja vincular. Clique em <strong>Criar dashboard</strong>. Após a criação, você será redirecionado para a página do novo dashboard.
           </Step>
-          <Step number={2} title="Ver resumo e formulários vinculados">
-            Na página do dashboard você vê dois cards de resumo (número de formulários e total de respostas) e a lista de formulários vinculados com quantidade de respostas e link para <strong>Ver respostas</strong>. Use o filtro <strong>Período</strong> (Todo o período, Últimos 7 dias, Últimos 30 dias) para refinar os totais.
+          <Step number={2} title="Período, conteúdo das respostas e exportação">
+            Escolha o <strong>Período de análise</strong> (todo o período, últimos 7 ou 30 dias). A secção <strong>Conteúdo das respostas</strong> mostra distribuições por tipo de pergunta (barras, pizza, histograma ou amostra de texto). Use <strong>Modo tabela</strong> para pré-visualizar linhas no browser e <strong>CSV</strong> ou <strong>Excel</strong> para exportar com colunas iguais ao texto das perguntas (limite de linhas no servidor para formulários muito grandes).
           </Step>
-          <Step number={3} title="Editar ou excluir">
+          <Step number={3} title="Fluxo de preenchimento e gráficos configuráveis">
+            A secção <strong>Fluxo de preenchimento</strong> agrupa conclusão, tempo (quando existir), abandono por pergunta e a lista de formulários vinculados. Se todas as perguntas respondíveis forem obrigatórias, essa secção pode iniciar <strong>recolhida</strong> para não desviar o foco da análise de conteúdo. Gráficos personalizados criados no dashboard usam a mesma base de agregação nas APIs de dados (com filtro de datas opcional na URL).
+          </Step>
+          <Step number={4} title="Editar ou excluir">
             Use <strong>Editar</strong> para alterar o título e os formulários vinculados. Use o ícone de lixeira para excluir o dashboard (confirmação no modal). Todas as ações exibem feedback em toast.
           </Step>
         </Section>

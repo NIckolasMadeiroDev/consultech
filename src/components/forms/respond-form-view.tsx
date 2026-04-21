@@ -1,18 +1,41 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import Link from "next/link";
 import { FormSubmitPausedError } from "@/lib/api";
-import { CheckCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isQuestionVisible } from "@/lib/question-visibility";
+import { filterVisibleResponseQuestions } from "@/modules/forms/filter-visible-response-questions";
+import { SectionHeader } from "@/components/forms/section-header";
+import { QuestionHelp } from "@/components/forms/question-help";
+import { acceptsAnswerValue } from "@/lib/form-question-kinds";
+import { TextBlockDisplay } from "@/components/forms/blocks/text-block-display";
+import { MarkdownBlockDisplay } from "@/components/forms/blocks/markdown-block-display";
+import { ImageBlockDisplay } from "@/components/forms/blocks/image-block-display";
+import { VideoBlockDisplay } from "@/components/forms/blocks/video-block-display";
+import { SeparatorDisplay } from "@/components/forms/blocks/separator-display";
+import { FileDownloadDisplay } from "@/components/forms/blocks/file-download-display";
+import { FileUploadAnswerField } from "@/components/forms/file-upload-answer-field";
+import { FormFilePrivacyNotice } from "@/components/forms/form-file-privacy-notice";
+import type { FileUploadRules } from "@/types/file-upload-rules";
+import type { ResponseAttachmentInput } from "@/modules/responses/response-attachment.types";
+import type { FormTheme } from "@/types/form-theme";
+import { getFormSubmitButtonClassName } from "@/lib/theme-utils";
+import { FormProgressBar, type FormProgressMetrics } from "@/components/forms/form-progress-bar";
+import { SuccessPage } from "@/components/forms/success-page";
+import { QuestionLabelIcon } from "@/components/forms/question-label-icon";
+import { SafeFormattedText } from "@/components/forms/safe-formatted-text";
+import type { FormResponseSettings } from "@/types/form-response-settings";
+import { defaultFormResponseSettings } from "@/types/form-response-settings";
+import { parseFormSectionVisibilityRules } from "@/types/form-section-visibility";
+import type { Question } from "@/core/entities/question.entity";
 
 const inputBaseClass =
   "h-10 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
 const textareaClass =
   "mt-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2.5 text-body text-[var(--text-primary)] outline-none transition-colors duration-150 placeholder:text-neutral-400 focus-visible:border-primary-500 focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
+const themedTextareaClass =
+  "form-theme-input mt-2 w-full px-3 py-2.5 text-body outline-none transition-colors duration-150 placeholder:text-[color-mix(in_srgb,var(--form-text-primary)_45%,transparent)]";
 const radioCheckClass =
   "h-4 w-4 shrink-0 rounded border-neutral-300 text-primary-600 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:border-neutral-600 dark:focus-visible:ring-offset-[var(--background)]";
 
@@ -30,7 +53,28 @@ export type RespondFormQuestion = {
   conditionQuestionId?: string;
   conditionOperator?: string;
   conditionValue?: unknown;
+  sectionTitle?: string | null;
+  sectionDescription?: string | null;
+  helpText?: string | null;
+  placeholder?: string | null;
+  contentHtml?: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  imageAlt?: string | null;
+  separatorStyle?: string | null;
+  fileDownloadUrl?: string | null;
+  fileDownloadLabel?: string | null;
+  fileDownloadMime?: string | null;
+  fileUploadRules?: FileUploadRules | null;
+  customIcon?: string | null;
 };
+
+function questionAnimClass(themeVisual: FormTheme | undefined): string {
+  if (!themeVisual?.animations?.enabled) return "";
+  const s = themeVisual.animations.style;
+  if (s === "none") return "";
+  return `form-q-anim form-q-anim--${s}`;
+}
 
 function draftStorageKey(formId: string) {
   return `consultech-form-draft:${formId}`;
@@ -45,9 +89,30 @@ type StoredDraft = {
   answers: Record<string, AnswerValue>;
 };
 
+function validateAnswerableBlock(
+  qs: RespondFormQuestion[],
+  answers: Record<string, AnswerValue>,
+  attachmentPayloads: Record<string, ResponseAttachmentInput[]>
+): string | null {
+  for (const q of qs) {
+    if (!acceptsAnswerValue(q.type)) continue;
+    if (q.type === "checkbox" && q.required) {
+      const v = (answers[q.id] as string[]) ?? [];
+      if (v.length === 0) {
+        return "Marque ao menos uma opção em cada pergunta obrigatória de múltipla escolha (caixas).";
+      }
+    }
+    if (q.required && !isRequiredFilled(q, answers, attachmentPayloads)) {
+      return "Preencha todos os campos obrigatórios deste passo.";
+    }
+  }
+  return null;
+}
+
 function isRequiredFilled(
   q: RespondFormQuestion,
-  answers: Record<string, AnswerValue>
+  answers: Record<string, AnswerValue>,
+  attachmentPayloads: Record<string, ResponseAttachmentInput[]>
 ): boolean {
   const v = answers[q.id];
   switch (q.type) {
@@ -67,9 +132,21 @@ function isRequiredFilled(
       return Array.isArray(v) && v.length > 0;
     case "scale":
       return typeof v === "number" && !Number.isNaN(v);
+    case "file_upload": {
+      const items = attachmentPayloads[q.id];
+      if (items && items.length > 0) return true;
+      if (Array.isArray(v)) return v.length > 0;
+      return typeof v === "string" && v.trim() !== "";
+    }
     default:
       return true;
   }
+}
+
+function sectionDisplayTitle(q: RespondFormQuestion): string {
+  const alt = q.sectionTitle?.trim();
+  if (alt) return alt;
+  return q.text?.trim() || "Geral";
 }
 
 function buildSectionBlocks(
@@ -84,7 +161,7 @@ function buildSectionBlocks(
         blocks.push({ title: pendingTitle, questions: [...agg] });
         agg.length = 0;
       }
-      pendingTitle = q.text;
+      pendingTitle = sectionDisplayTitle(q);
     } else {
       agg.push(q);
     }
@@ -97,11 +174,31 @@ function buildSectionBlocks(
   return blocks;
 }
 
+function buildQuestionStepBlocks(
+  visibleQuestions: RespondFormQuestion[]
+): { title: string; questions: RespondFormQuestion[] }[] {
+  const blocks: { title: string; questions: RespondFormQuestion[] }[] = [];
+  let pendingTitle = "Geral";
+  for (const q of visibleQuestions) {
+    if (q.type === "section") {
+      pendingTitle = sectionDisplayTitle(q);
+      continue;
+    }
+    if (!acceptsAnswerValue(q.type)) continue;
+    blocks.push({ title: pendingTitle, questions: [q] });
+  }
+  if (blocks.length === 0) {
+    blocks.push({ title: pendingTitle, questions: [] });
+  }
+  return blocks;
+}
+
 export function RespondFormView({
   formId,
   form,
   preview = false,
   onPreviewDone,
+  themeVisual,
 }: {
   readonly formId: string;
   readonly form: {
@@ -109,10 +206,19 @@ export function RespondFormView({
     description?: string;
     closingMessage?: string;
     allowAnonymous?: boolean;
+    responseSettings?: FormResponseSettings | null;
+    sectionVisibilityRules?: unknown;
+    welcomeMessage?: string;
+    submitButtonText?: string;
+    successMessage?: string;
+    successPageHtml?: string | null;
+    successRedirectUrl?: string | null;
+    successRedirectDelay?: number;
     questions: RespondFormQuestion[];
   };
   readonly preview?: boolean;
   readonly onPreviewDone?: () => void;
+  readonly themeVisual?: FormTheme;
 }) {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
@@ -123,16 +229,97 @@ export function RespondFormView({
   const [employeeId, setEmployeeId] = useState("");
   const [department, setDepartment] = useState("");
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
+  const [attachmentPayloads, setAttachmentPayloads] = useState<
+    Record<string, ResponseAttachmentInput[]>
+  >({});
   const submitErrorRef = useRef<HTMLDivElement>(null);
+  const themed = Boolean(themeVisual);
+  const inputThemedClass = themed
+    ? "form-theme-input h-10 w-full px-3 py-2 text-body outline-none transition-colors duration-150 placeholder:text-[color-mix(in_srgb,var(--form-text-primary)_45%,transparent)]"
+    : inputBaseClass;
+  const textareaThemedClass = themed ? themedTextareaClass : textareaClass;
+  const submitLabel =
+    form.submitButtonText?.trim() && form.submitButtonText.trim().length > 0
+      ? form.submitButtonText.trim()
+      : "Enviar resposta";
+  const thankYouBody =
+    form.successMessage?.trim() ||
+    form.closingMessage?.trim() ||
+    "Sua resposta foi registrada.";
+  const successDelay = form.successRedirectDelay ?? 0;
 
   const sortedQuestions = useMemo(
     () => [...(form.questions ?? [])].sort((a, b) => a.orderIndex - b.orderIndex),
     [form.questions]
   );
-  const visibleQuestions = useMemo(
-    () => sortedQuestions.filter((q) => isQuestionVisible(q, answers)),
-    [sortedQuestions, answers]
+
+  const responseSettings = useMemo(
+    () => form.responseSettings ?? defaultFormResponseSettings(Boolean(form.allowAnonymous)),
+    [form.responseSettings, form.allowAnonymous]
   );
+
+  const sectionRules = useMemo(
+    () => parseFormSectionVisibilityRules(form.sectionVisibilityRules),
+    [form.sectionVisibilityRules]
+  );
+
+  const respondentDeptContext = useMemo(() => {
+    if (responseSettings.respondentIdentificationMode === "anonymous") return null;
+    return { department: department.trim() || undefined };
+  }, [responseSettings.respondentIdentificationMode, department]);
+
+  const visibleQuestions = useMemo(
+    () =>
+      filterVisibleResponseQuestions(
+        sortedQuestions as Question[],
+        answers as Record<string, unknown>,
+        sectionRules,
+        respondentDeptContext
+      ),
+    [sortedQuestions, answers, sectionRules, respondentDeptContext]
+  );
+
+  const hasFileUploadQuestion = useMemo(
+    () => visibleQuestions.some((q) => q.type === "file_upload"),
+    [visibleQuestions]
+  );
+
+  const respondentFieldsRequired =
+    responseSettings.respondentIdentificationMode === "required";
+
+  const layoutStepBlocks = useMemo(() => {
+    if (responseSettings.responseLayoutMode === "wizard_by_question") {
+      return buildQuestionStepBlocks(visibleQuestions);
+    }
+    return buildSectionBlocks(visibleQuestions);
+  }, [visibleQuestions, responseSettings.responseLayoutMode]);
+
+  const respondentStepCount =
+    responseSettings.respondentIdentificationMode === "anonymous" ? 0 : 1;
+  const totalWizardSteps = respondentStepCount + layoutStepBlocks.length;
+  const isWizard =
+    responseSettings.responseLayoutMode !== "single_page" && totalWizardSteps > 1;
+  const [wizardStep, setWizardStep] = useState(0);
+  const formRootRef = useRef<HTMLFormElement>(null);
+  const wizardScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isWizard) return;
+    const max = Math.max(0, totalWizardSteps - 1);
+    setWizardStep((s) => Math.min(s, max));
+  }, [isWizard, totalWizardSteps]);
+
+  useEffect(() => {
+    if (!isWizard) return;
+    wizardScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [isWizard, wizardStep]);
+
+  const questionsForList = useMemo(() => {
+    if (!isWizard) return visibleQuestions;
+    const bi = wizardStep - respondentStepCount;
+    if (bi < 0) return [] as RespondFormQuestion[];
+    return layoutStepBlocks[bi]?.questions ?? [];
+  }, [isWizard, wizardStep, respondentStepCount, layoutStepBlocks, visibleQuestions]);
 
   const draftStateRef = useRef({
     name: "",
@@ -148,15 +335,16 @@ export function RespondFormView({
   }, [name, email, employeeId, department, answers]);
 
   const progress = useMemo(() => {
-    const blocks = buildSectionBlocks(visibleQuestions);
-    const answerable = visibleQuestions.filter((q) => q.type !== "section");
+    const blocks = layoutStepBlocks;
+    const answerable = visibleQuestions.filter((q) => acceptsAnswerValue(q.type));
     const requiredQs = answerable.filter((q) => q.required);
-    const filled = requiredQs.filter((q) => isRequiredFilled(q, answers)).length;
+    const filled = requiredQs.filter((q) => isRequiredFilled(q, answers, attachmentPayloads)).length;
     const totalReq = requiredQs.length;
     const pct = totalReq === 0 ? 100 : Math.min(100, Math.round((100 * filled) / totalReq));
-    const allReq = visibleQuestions.filter((q) => q.type !== "section" && q.required);
+    const allReq = visibleQuestions.filter((q) => acceptsAnswerValue(q.type) && q.required);
     const allDone =
-      allReq.length === 0 || allReq.every((q) => isRequiredFilled(q, answers));
+      allReq.length === 0 ||
+      allReq.every((q) => isRequiredFilled(q, answers, attachmentPayloads));
     let currentIdx = 0;
     if (blocks.length > 0) {
       if (allDone) {
@@ -164,7 +352,10 @@ export function RespondFormView({
       } else {
         const idx = blocks.findIndex((b) => {
           const req = b.questions.filter((q) => q.required);
-          return req.length > 0 && req.some((q) => !isRequiredFilled(q, answers));
+          return (
+            req.length > 0 &&
+            req.some((q) => !isRequiredFilled(q, answers, attachmentPayloads))
+          );
         });
         currentIdx = idx === -1 ? 0 : idx;
       }
@@ -178,11 +369,15 @@ export function RespondFormView({
       sectionTitle,
       sectionIndex: currentIdx + 1,
       sectionTotal: Math.max(1, blocks.length),
-    };
-  }, [visibleQuestions, answers]);
+    } satisfies FormProgressMetrics;
+  }, [visibleQuestions, answers, attachmentPayloads, layoutStepBlocks]);
 
   useEffect(() => {
     if (preview) {
+      setDraftHydrated(true);
+      return;
+    }
+    if (!responseSettings.allowSaveDraft) {
       setDraftHydrated(true);
       return;
     }
@@ -191,8 +386,15 @@ export function RespondFormView({
       if (raw) {
         const d = JSON.parse(raw) as StoredDraft;
         if (d?.v === 1 && d.answers && typeof d.answers === "object") {
-          setAnswers(d.answers);
-          if (!form.allowAnonymous) {
+          const next = { ...d.answers } as Record<string, AnswerValue>;
+          for (const q of form.questions) {
+            if (q.type === "file_upload") {
+              delete next[q.id];
+            }
+          }
+          setAnswers(next);
+          setAttachmentPayloads({});
+          if (responseSettings.respondentIdentificationMode !== "anonymous") {
             setName(typeof d.name === "string" ? d.name : "");
             setEmail(typeof d.email === "string" ? d.email : "");
             setEmployeeId(typeof d.employeeId === "string" ? d.employeeId : "");
@@ -203,10 +405,10 @@ export function RespondFormView({
     } catch {
     }
     setDraftHydrated(true);
-  }, [formId, preview, form.allowAnonymous]);
+  }, [formId, preview, form.questions, responseSettings.allowSaveDraft, responseSettings.respondentIdentificationMode]);
 
   useEffect(() => {
-    if (preview || !draftHydrated) return;
+    if (preview || !draftHydrated || !responseSettings.allowSaveDraft) return;
     const t = window.setTimeout(() => {
       try {
         const payload: StoredDraft = {
@@ -222,15 +424,15 @@ export function RespondFormView({
       }
     }, 400);
     return () => window.clearTimeout(t);
-  }, [name, email, employeeId, department, answers, formId, preview, draftHydrated]);
+  }, [name, email, employeeId, department, answers, formId, preview, draftHydrated, responseSettings.allowSaveDraft]);
 
   const hasUnsubmittedContent =
     Object.keys(answers).length > 0 ||
-    (!form.allowAnonymous &&
+    (respondentStepCount > 0 &&
       [name, email, employeeId, department].some((x) => x.trim() !== ""));
 
   useEffect(() => {
-    if (preview || submitted) return;
+    if (preview || submitted || !responseSettings.allowSaveDraft) return;
     const flushDraft = () => {
       try {
         const p = draftStateRef.current;
@@ -261,7 +463,7 @@ export function RespondFormView({
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [preview, submitted, formId, hasUnsubmittedContent]);
+  }, [preview, submitted, formId, hasUnsubmittedContent, responseSettings.allowSaveDraft]);
 
   const handleCheckboxChange = (questionId: string, option: string, checked: boolean) => {
     setAnswers((prev) => {
@@ -282,8 +484,32 @@ export function RespondFormView({
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const handleWizardNext = () => {
+    setErr(null);
+    setErrTargetQuestionId(null);
+    if (respondentStepCount > 0 && wizardStep === 0) {
+      const el = formRootRef.current;
+      if (el && !el.checkValidity()) {
+        el.reportValidity();
+        return;
+      }
+    } else {
+      const bi = wizardStep - respondentStepCount;
+      const qs = layoutStepBlocks[bi]?.questions ?? [];
+      const msg = validateAnswerableBlock(qs, answers, attachmentPayloads);
+      if (msg) {
+        setErr(msg);
+        return;
+      }
+    }
+    setWizardStep((s) => Math.min(s + 1, totalWizardSteps - 1));
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isWizard && wizardStep !== totalWizardSteps - 1) {
+      return;
+    }
     const formEl = e.currentTarget;
     if (!formEl.checkValidity()) {
       formEl.reportValidity();
@@ -313,25 +539,57 @@ export function RespondFormView({
     setSending(true);
     try {
       const { submitResponse } = await import("@/lib/api");
-      const answerable = visibleQuestions.filter((q) => q.type !== "section");
+      const answerable = visibleQuestions.filter((q) => acceptsAnswerValue(q.type));
+      const flatAttachments = Object.values(attachmentPayloads).flat();
       const payload: {
         formId: string;
         respondent?: { name: string; email: string; employeeId?: string; department?: string };
         answers: Array<{ questionId: string; value: AnswerValue }>;
+        attachments?: typeof flatAttachments;
       } = {
         formId,
-        answers: answerable.map((q) => ({
-          questionId: q.id,
-          value: answers[q.id] ?? (q.type === "yes_no" ? false : ""),
-        })),
+        answers: answerable.map((q) => {
+          if (q.type === "file_upload" && q.fileUploadRules) {
+            const items = attachmentPayloads[q.id] ?? [];
+            const multi = q.fileUploadRules.maxFiles > 1;
+            const value: AnswerValue = multi
+              ? items.map((x) => x.publicUrl)
+              : (items[0]?.publicUrl ?? "");
+            return { questionId: q.id, value };
+          }
+          return {
+            questionId: q.id,
+            value:
+              answers[q.id] ??
+              (q.type === "yes_no" ? false : q.type === "file_upload" ? "" : ""),
+          };
+        }),
+        attachments: flatAttachments.length > 0 ? flatAttachments : undefined,
       };
-      if (!form.allowAnonymous) {
+      const idMode = responseSettings.respondentIdentificationMode;
+      if (idMode === "required") {
         payload.respondent = {
           name,
           email,
           employeeId: employeeId || undefined,
           department: department || undefined,
         };
+      } else if (idMode === "optional") {
+        const nt = name.trim();
+        const em = email.trim();
+        if (nt || em) {
+          if (!nt || !em) {
+            setErr("Preencha nome e e-mail para identificar a resposta, ou deixe ambos em branco.");
+            setSending(false);
+            return;
+          }
+          payload.respondent = {
+            name: nt,
+            email: em,
+            employeeId: employeeId || undefined,
+            department: department || undefined,
+          };
+        }
       }
       await submitResponse(payload);
       setSubmitted(true);
@@ -362,94 +620,95 @@ export function RespondFormView({
 
   if (submitted) {
     return (
-      <div className="mx-auto max-w-lg">
-        <Card
-          padding="lg"
-          className="border-green-200 bg-green-50 text-center dark:border-green-800 dark:bg-green-950/40"
-        >
-          <div className="flex justify-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/50">
-              <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" aria-hidden />
-            </span>
-          </div>
-          <p className="mt-4 text-body-lg font-medium text-[var(--text-primary)]">Obrigado!</p>
-          <p className="mt-2 whitespace-pre-wrap text-body text-[var(--text-primary)]">
-            {form.closingMessage?.trim()
-              ? form.closingMessage.trim()
-              : "Sua resposta foi registrada."}
-          </p>
-          {preview && (
-            <p className="mt-3 rounded-lg border border-primary-200 bg-primary-50/80 px-3 py-2 text-small text-[var(--text-primary)] dark:border-primary-800 dark:bg-primary-950/40">
-              Pré-visualização: nenhum dado foi enviado ao servidor.
-            </p>
-          )}
-          <p className="mt-3 text-small text-[var(--text-secondary)]">
-            {preview ? "Feche a janela de pré-visualização para voltar à edição." : "Você pode fechar esta página ou voltar ao início."}
-          </p>
-          {preview && onPreviewDone && (
-            <div className="mt-6">
-              <Button type="button" variant="primary" onClick={onPreviewDone}>
-                Fechar pré-visualização
-              </Button>
-            </div>
-          )}
-          {!preview && (
-            <Link href="/" className="mt-6 inline-block">
-              <Button variant="primary">Voltar ao início</Button>
-            </Link>
-          )}
-        </Card>
-      </div>
+      <SuccessPage
+        themed={themed}
+        title="Obrigado!"
+        plainBody={thankYouBody}
+        htmlBody={form.successPageHtml}
+        redirectUrl={form.successRedirectUrl}
+        redirectDelaySec={successDelay}
+        preview={preview}
+        onPreviewDone={onPreviewDone}
+      />
     );
   }
 
   return (
     <div className="mx-auto max-w-lg">
       <header className="mb-lg sm:mb-xl">
-        <h1 className="text-h2 font-semibold text-[var(--text-primary)] sm:text-h1">
+        <h1
+          className={
+            themed
+              ? "form-theme-heading text-h2 font-semibold sm:text-h1"
+              : "text-h2 font-semibold text-[var(--text-primary)] sm:text-h1"
+          }
+        >
           {form.title}
         </h1>
-        {form.description && (
-          <p className="mt-2 text-body text-[var(--text-secondary)]">{form.description}</p>
-        )}
+        {form.description?.trim() ? (
+          <SafeFormattedText
+            source={form.description.trim()}
+            className={
+              themed
+                ? "prose prose-sm mt-2 max-w-none text-body text-[color:var(--form-text-secondary)] dark:prose-invert"
+                : "prose prose-sm mt-2 max-w-none text-body text-[var(--text-secondary)] dark:prose-invert"
+            }
+          />
+        ) : null}
+        {responseSettings.respondentIdentificationMode === "anonymous" && !preview ? (
+          <p
+            className={
+              themed
+                ? "mt-3 text-small text-[color:var(--form-text-secondary)]"
+                : "mt-3 text-small text-[var(--text-secondary)]"
+            }
+            role="status"
+          >
+            As respostas não são associadas ao seu nome.
+          </p>
+        ) : null}
+        {hasFileUploadQuestion && !preview ? (
+          <FormFilePrivacyNotice themed={themed} />
+        ) : null}
+        {form.welcomeMessage?.trim() ? (
+          <p
+            className={
+              themed
+                ? "mt-4 whitespace-pre-wrap text-body text-[color:var(--form-text-primary)]"
+                : "mt-4 whitespace-pre-wrap text-body text-[var(--text-primary)]"
+            }
+          >
+            {form.welcomeMessage.trim()}
+          </p>
+        ) : null}
       </header>
 
-      {draftHydrated && (
-        <div className="mb-lg space-y-2" aria-live="polite">
-          <div className="flex flex-col gap-1 text-small text-[var(--text-secondary)] sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <span>
-              {progress.totalReq === 0
-                ? "Nenhuma pergunta obrigatória nesta etapa"
-                : `Obrigatórias: ${progress.filled} de ${progress.totalReq}`}
-            </span>
-            <span className="truncate sm:max-w-[55%]" title={progress.sectionTitle}>
-              Seção {progress.sectionIndex}/{progress.sectionTotal}: {progress.sectionTitle}
-            </span>
-          </div>
-          <div
-            className="h-2 w-full overflow-hidden rounded-full bg-neutral-200 dark:bg-neutral-700"
-            role="progressbar"
-            aria-valuenow={progress.totalReq === 0 ? 1 : progress.filled}
-            aria-valuemin={0}
-            aria-valuemax={progress.totalReq === 0 ? 1 : progress.totalReq}
-            aria-label="Progresso das perguntas obrigatórias respondidas"
-          >
-            <div
-              className="h-full rounded-full bg-primary-600 transition-[width] duration-300 ease-out"
-              style={{ width: `${progress.pct}%` }}
-            />
-          </div>
-          {!preview && (
-            <p className="text-small text-[var(--text-secondary)]">
-              Rascunho salvo neste dispositivo. Ao sair ou fechar a aba, o navegador pode avisar se ainda não
-              tiver enviado.
-            </p>
-          )}
-        </div>
-      )}
+      {draftHydrated && responseSettings.showProgressBar ? (
+        <FormProgressBar
+          themeVisual={themeVisual}
+          metrics={progress}
+          preview={preview}
+          draftNote={
+            !preview && responseSettings.allowSaveDraft ? (
+              <p className="text-small text-[var(--text-secondary)]">
+                Rascunho salvo neste dispositivo. Ao sair ou fechar a aba, o navegador pode avisar se ainda não
+                tiver enviado.
+              </p>
+            ) : null
+          }
+        />
+      ) : null}
 
-      <Card padding="lg" className="border-neutral-200 dark:border-neutral-700">
+      <Card
+        padding="lg"
+        className={
+          themed
+            ? "form-theme-card form-theme-surface border"
+            : "border-neutral-200 dark:border-neutral-700"
+        }
+      >
         <form
+          ref={formRootRef}
           onSubmit={handleSubmit}
           className="space-y-6"
           aria-describedby={err ? "form-submit-error" : undefined}
@@ -467,7 +726,8 @@ export function RespondFormView({
             </div>
           )}
 
-          {!form.allowAnonymous && (
+          {((!isWizard && respondentStepCount > 0) ||
+            (isWizard && respondentStepCount > 0 && wizardStep === 0)) && (
             <section aria-labelledby="respondent-fields-heading">
               <h2 id="respondent-fields-heading" className="mb-lg text-h4 text-[var(--text-primary)]">
                 Seus dados
@@ -481,7 +741,7 @@ export function RespondFormView({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
-                  required
+                  required={respondentFieldsRequired}
                 />
                 <Input
                   id="respondent-email"
@@ -491,7 +751,7 @@ export function RespondFormView({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
-                  required
+                  required={respondentFieldsRequired}
                 />
                 <Input
                   id="respondent-employeeId"
@@ -515,25 +775,73 @@ export function RespondFormView({
             </section>
           )}
 
+          {(!isWizard || (isWizard && !(respondentStepCount > 0 && wizardStep === 0))) && (
           <section aria-labelledby="form-questions-heading">
             <h2 id="form-questions-heading" className="mb-lg text-h4 text-[var(--text-primary)]">
               Perguntas
             </h2>
+            {isWizard && wizardStep >= respondentStepCount ? (
+              <div className="mb-4 space-y-1">
+                <p className="text-small text-[var(--text-secondary)]">
+                  Passo {wizardStep + 1} de {totalWizardSteps}
+                </p>
+                {layoutStepBlocks[wizardStep - respondentStepCount]?.title ? (
+                  <h3 className="text-body font-semibold text-[var(--text-primary)]">
+                    {layoutStepBlocks[wizardStep - respondentStepCount]?.title}
+                  </h3>
+                ) : null}
+              </div>
+            ) : null}
             <ul className="space-y-4">
-              {visibleQuestions.map((q) =>
+              {questionsForList.map((q) =>
                 q.type === "section" ? (
-                  <li key={q.id} className="border-b border-neutral-200 pb-2 pt-4 first:pt-0 dark:border-neutral-700">
-                    <h3
+                  <li key={q.id} className={`list-none ${questionAnimClass(themeVisual)}`}>
+                    <SectionHeader
                       id={`section-heading-${q.id}`}
-                      className="text-h4 font-semibold text-primary-600 dark:text-primary-400"
-                    >
-                      {q.text}
-                    </h3>
+                      title={(q.sectionTitle?.trim() || q.text).trim() || "Seção"}
+                      description={q.sectionDescription}
+                    />
+                  </li>
+                ) : !acceptsAnswerValue(q.type) ? (
+                  <li key={q.id} className={`list-none ${questionAnimClass(themeVisual)}`}>
+                    {q.type === "separator" ? (
+                      <SeparatorDisplay styleId={q.separatorStyle} />
+                    ) : (
+                      <div className="rounded-lg border border-neutral-200 bg-[var(--surface)] p-lg dark:border-neutral-700">
+                        {q.text?.trim() ? (
+                          <h3 className="mb-3 text-body font-semibold text-[var(--text-primary)]">
+                            {q.text}
+                          </h3>
+                        ) : null}
+                        {q.type === "text_block" && q.contentHtml ? (
+                          <TextBlockDisplay html={q.contentHtml} />
+                        ) : null}
+                        {q.type === "markdown_block" && q.contentHtml ? (
+                          <MarkdownBlockDisplay source={q.contentHtml} />
+                        ) : null}
+                        {q.type === "image_block" ? (
+                          <ImageBlockDisplay
+                            imageUrl={q.imageUrl ?? ""}
+                            imageAlt={q.imageAlt}
+                          />
+                        ) : null}
+                        {q.type === "video_block" && q.videoUrl ? (
+                          <VideoBlockDisplay videoUrl={q.videoUrl} />
+                        ) : null}
+                        {q.type === "file_download" ? (
+                          <FileDownloadDisplay
+                            url={q.fileDownloadUrl ?? ""}
+                            label={q.fileDownloadLabel ?? q.text}
+                            mime={q.fileDownloadMime}
+                          />
+                        ) : null}
+                      </div>
+                    )}
                   </li>
                 ) : (
                   <li
                     key={q.id}
-                    className="rounded-lg border border-neutral-200 bg-[var(--surface)] p-lg transition-colors duration-150 dark:border-neutral-700"
+                    className={`rounded-lg border border-neutral-200 bg-[var(--surface)] p-lg transition-colors duration-150 dark:border-neutral-700 ${questionAnimClass(themeVisual)}`}
                   >
                     {(() => {
                       const legendId = `q-legend-${q.id}`;
@@ -543,13 +851,31 @@ export function RespondFormView({
                           <span className="sr-only"> (obrigatório)</span>
                         </>
                       ) : null;
+                      const helpText = q.helpText?.trim() ?? "";
+                      const ph = q.placeholder?.trim() || undefined;
                       const legend = (
                         <legend
                           id={legendId}
-                          className="mb-0 block w-full px-0 text-small font-medium text-[var(--text-primary)]"
+                          className="mb-0 flex w-full flex-wrap items-baseline gap-x-2 px-0 text-small font-medium text-[var(--text-primary)]"
                         >
-                          {q.text}
-                          {requiredSuffix}
+                          <span className="inline-flex flex-wrap items-center gap-2">
+                            <QuestionLabelIcon
+                              questionType={q.type}
+                              customIcon={q.customIcon}
+                              className={
+                                themed
+                                  ? "h-4 w-4 shrink-0 text-[color:var(--form-color-primary)]"
+                                  : "h-4 w-4 shrink-0 text-primary-600"
+                              }
+                            />
+                            <span>
+                              {q.text}
+                              {requiredSuffix}
+                            </span>
+                          </span>
+                          {helpText ? (
+                            <QuestionHelp helpText={helpText} labelId={legendId} />
+                          ) : null}
                         </legend>
                       );
 
@@ -572,7 +898,8 @@ export function RespondFormView({
                               id={`answer-${q.id}`}
                               value={(answers[q.id] as string) ?? ""}
                               onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                              className={`mt-2 ${inputBaseClass}`}
+                              className={`mt-2 ${inputThemedClass}`}
+                              placeholder={ph}
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
@@ -585,8 +912,9 @@ export function RespondFormView({
                               id={`answer-${q.id}`}
                               value={(answers[q.id] as string) ?? ""}
                               onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                              className={textareaClass}
+                              className={textareaThemedClass}
                               rows={3}
+                              placeholder={ph}
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
@@ -639,7 +967,8 @@ export function RespondFormView({
                                   [q.id]: e.target.value ? Number(e.target.value) : "",
                                 }))
                               }
-                              className={`mt-2 ${inputBaseClass}`}
+                              className={`mt-2 ${inputThemedClass}`}
+                              placeholder={ph}
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
@@ -653,7 +982,8 @@ export function RespondFormView({
                               id={`answer-${q.id}`}
                               value={(answers[q.id] as string) ?? ""}
                               onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
-                              className={`mt-2 ${inputBaseClass}`}
+                              className={`mt-2 ${inputThemedClass}`}
+                              placeholder={ph}
                               required={q.required}
                               aria-labelledby={legendId}
                               aria-required={q.required}
@@ -718,7 +1048,7 @@ export function RespondFormView({
                           {q.type === "dropdown" && (
                             <select
                               id={`answer-${q.id}`}
-                              className={`mt-2 ${inputBaseClass}`}
+                              className={`mt-2 ${inputThemedClass}`}
                               value={(answers[q.id] as string) ?? ""}
                               onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: e.target.value }))}
                               required={q.required}
@@ -753,6 +1083,27 @@ export function RespondFormView({
                               ))}
                             </div>
                           )}
+                          {q.type === "file_upload" && q.fileUploadRules ? (
+                            <FileUploadAnswerField
+                              formId={formId}
+                              questionId={q.id}
+                              rules={q.fileUploadRules}
+                              attachments={attachmentPayloads[q.id] ?? []}
+                              onAttachmentsChange={(items) => {
+                                setAttachmentPayloads((prev) => ({ ...prev, [q.id]: items }));
+                                const multi = q.fileUploadRules!.maxFiles > 1;
+                                setAnswers((a) => ({
+                                  ...a,
+                                  [q.id]: multi
+                                    ? items.map((x) => x.publicUrl)
+                                    : (items[0]?.publicUrl ?? ""),
+                                }));
+                              }}
+                              required={q.required}
+                              disabled={preview}
+                              legendId={legendId}
+                            />
+                          ) : null}
                         </fieldset>
                       );
                     })()}
@@ -761,17 +1112,42 @@ export function RespondFormView({
               )}
             </ul>
           </section>
+          )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            className="w-full"
-            loading={sending}
-            disabled={sending}
-          >
-            {preview ? "Simular envio" : sending ? "Enviando..." : "Enviar resposta"}
-          </Button>
+          {isWizard && totalWizardSteps > 1 ? (
+            <div ref={wizardScrollRef} className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={wizardStep === 0}
+                onClick={() => setWizardStep((s) => Math.max(0, s - 1))}
+              >
+                Anterior
+              </Button>
+              {wizardStep < totalWizardSteps - 1 ? (
+                <Button type="button" variant="primary" onClick={handleWizardNext}>
+                  Seguinte
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {(!isWizard || wizardStep === totalWizardSteps - 1) && (
+            <Button
+              type="submit"
+              variant={themed ? "ghost" : "primary"}
+              size="lg"
+              className={
+                themed && themeVisual
+                  ? getFormSubmitButtonClassName(themeVisual)
+                  : "w-full"
+              }
+              loading={sending}
+              disabled={sending}
+            >
+              {preview ? "Simular envio" : sending ? "Enviando..." : submitLabel}
+            </Button>
+          )}
         </form>
       </Card>
     </div>

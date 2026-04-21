@@ -26,6 +26,7 @@ type ChartData = {
 };
 
 type CustomChartRendererProps = {
+  dashboardId: string;
   chartId: string;
   chartType: "bar" | "line" | "pie";
   title: string;
@@ -34,6 +35,7 @@ type CustomChartRendererProps = {
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 export function CustomChartRenderer({
+  dashboardId,
   chartId,
   chartType,
   title,
@@ -43,15 +45,12 @@ export function CustomChartRenderer({
 
   useEffect(() => {
     loadChartData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartId]);
+  }, [chartId, dashboardId]);
 
   const loadChartData = async () => {
     setLoading(true);
     try {
-      // Extract dashboardId from the URL or context
-      // For now, we'll need to pass it or infer it
-      const response = await fetch(`/api/dashboards/charts/${chartId}/data`);
+      const response = await fetch(`/api/dashboards/${dashboardId}/charts/${chartId}/data`);
       if (!response.ok) throw new Error("Erro ao carregar dados");
       const json = await response.json();
       setData(Array.isArray(json) ? json : []);

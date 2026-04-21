@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import * as api from "@/lib/api";
+import type { FormTheme } from "@/types/form-theme";
+import type { FormResponseSettings } from "@/types/form-response-settings";
 
 export type FormDetail = {
   id: string;
@@ -13,6 +15,18 @@ export type FormDetail = {
   folder?: string;
   isTemplate?: boolean;
   allowAnonymous?: boolean;
+  responseSettings?: FormResponseSettings;
+  theme?: FormTheme;
+  headerImage?: string;
+  logoImage?: string;
+  backgroundImage?: string;
+  welcomeMessage?: string;
+  submitButtonText?: string;
+  successMessage?: string;
+  successPageHtml?: string | null;
+  successRedirectUrl?: string | null;
+  successRedirectDelay?: number | null;
+  sectionVisibilityRules?: unknown;
   status: string;
   questions: Array<{
     id: string;
@@ -23,6 +37,7 @@ export type FormDetail = {
     options?: string[];
     scaleMin?: number;
     scaleMax?: number;
+    customIcon?: string | null;
   }>;
 };
 

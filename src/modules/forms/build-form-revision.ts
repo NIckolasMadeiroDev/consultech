@@ -1,4 +1,6 @@
 import type { Form, Question } from "@/core/entities";
+import { parseFormResponseSettings } from "@/types/form-response-settings";
+import { parseFormSectionVisibilityRules } from "@/types/form-section-visibility";
 
 export type FormRevisionDetailItem = {
   field: string;
@@ -18,6 +20,19 @@ type QuestionSnap = {
   conditionQuestionId: string;
   conditionOperator: string;
   conditionValue: unknown;
+  sectionTitle: string;
+  sectionDescription: string;
+  helpText: string;
+  placeholder: string;
+  contentHtml: string;
+  imageUrl: string;
+  videoUrl: string;
+  imageAlt: string;
+  separatorStyle: string;
+  fileDownloadUrl: string;
+  fileDownloadLabel: string;
+  fileDownloadMime: string;
+  fileUploadRules: string;
 };
 
 export type FormSnapshot = {
@@ -30,6 +45,9 @@ export type FormSnapshot = {
   status: string;
   slug: string;
   allowAnonymous: boolean;
+  respondentIdentificationMode: string;
+  responseLayoutMode: string;
+  sectionVisibilityRules: string;
   questions: QuestionSnap[];
 };
 
@@ -37,6 +55,11 @@ export function snapshotFormState(form: Form, questions: Question[]): FormSnapsh
   const qs = [...questions].sort(
     (a, b) => a.orderIndex - b.orderIndex || a.id.localeCompare(b.id)
   );
+  const rs = parseFormResponseSettings(
+    (form as { responseSettings?: unknown }).responseSettings,
+    form.allowAnonymous
+  );
+  const sv = JSON.stringify(parseFormSectionVisibilityRules(form.sectionVisibilityRules));
   return {
     title: form.title,
     description: form.description ?? "",
@@ -47,6 +70,9 @@ export function snapshotFormState(form: Form, questions: Question[]): FormSnapsh
     status: form.status,
     slug: form.slug ?? "",
     allowAnonymous: form.allowAnonymous,
+    respondentIdentificationMode: rs.respondentIdentificationMode,
+    responseLayoutMode: rs.responseLayoutMode,
+    sectionVisibilityRules: sv,
     questions: qs.map((q) => ({
       id: q.id,
       type: q.type,
@@ -59,6 +85,21 @@ export function snapshotFormState(form: Form, questions: Question[]): FormSnapsh
       conditionQuestionId: q.conditionQuestionId ?? "",
       conditionOperator: q.conditionOperator ?? "",
       conditionValue: q.conditionValue,
+      sectionTitle: q.sectionTitle ?? "",
+      sectionDescription: q.sectionDescription ?? "",
+      helpText: q.helpText ?? "",
+      placeholder: q.placeholder ?? "",
+      contentHtml: q.contentHtml ?? "",
+      imageUrl: q.imageUrl ?? "",
+      videoUrl: q.videoUrl ?? "",
+      imageAlt: q.imageAlt ?? "",
+      separatorStyle: q.separatorStyle ?? "",
+      fileDownloadUrl: q.fileDownloadUrl ?? "",
+      fileDownloadLabel: q.fileDownloadLabel ?? "",
+      fileDownloadMime: q.fileDownloadMime ?? "",
+      fileUploadRules: q.fileUploadRules
+        ? JSON.stringify(q.fileUploadRules)
+        : "",
     })),
   };
 }
@@ -89,6 +130,9 @@ export function diffFormSnapshots(
   add("status", before.status, after.status);
   add("slug", before.slug, after.slug);
   add("allowAnonymous", before.allowAnonymous, after.allowAnonymous);
+  add("respondentIdentificationMode", before.respondentIdentificationMode, after.respondentIdentificationMode);
+  add("responseLayoutMode", before.responseLayoutMode, after.responseLayoutMode);
+  add("sectionVisibilityRules", before.sectionVisibilityRules, after.sectionVisibilityRules);
   add("questions", before.questions, after.questions);
   const labels: Record<string, string> = {
     title: "título",
@@ -100,6 +144,9 @@ export function diffFormSnapshots(
     status: "status",
     slug: "slug",
     allowAnonymous: "anônimo",
+    respondentIdentificationMode: "identificação",
+    responseLayoutMode: "layout de resposta",
+    sectionVisibilityRules: "visibilidade por secção",
     questions: "perguntas e seções",
   };
   const summary =

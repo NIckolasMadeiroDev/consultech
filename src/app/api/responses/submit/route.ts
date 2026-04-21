@@ -4,6 +4,7 @@ import { submitResponse } from "@/modules/responses/submit-response";
 import { submitResponseSchema } from "@/modules/responses/response.schema";
 import {
   getFormRepository,
+  getQuestionRepository,
   getRespondentRepository,
   getResponseRepository,
 } from "@/infrastructure/database/repositories";
@@ -15,6 +16,7 @@ export async function POST(req: NextRequest) {
     const formRepo = getFormRepository();
     const respondentRepo = getRespondentRepository();
     const responseRepo = getResponseRepository();
-    return submitResponse(data, formRepo, respondentRepo, responseRepo);
+    const questionRepo = getQuestionRepository();
+    return submitResponse(data, formRepo, respondentRepo, responseRepo, questionRepo);
   });
 }

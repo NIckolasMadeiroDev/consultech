@@ -1,0 +1,76 @@
+import type { FormTheme } from "./form-theme";
+
+export const DEFAULT_FORM_THEME: FormTheme = {
+  appearance: "light",
+  pageBackgroundPatternId: "none",
+  colors: {
+    primary: "#4F46E5",
+    secondary: "#6366F1",
+    pageBackground: "#F3F4F6",
+    surfaceBackground: "#FFFFFF",
+    textPrimary: "#111827",
+    textSecondary: "#6B7280",
+    border: "#E5E7EB",
+    focusRing: "#4F46E5",
+    link: "#2563EB",
+    success: "#059669",
+    error: "#DC2626",
+    progressTrack: "#E5E7EB",
+    progressFill: "#4F46E5",
+  },
+  typography: {
+    headingFont: "Inter, system-ui, sans-serif",
+    bodyFont: "Inter, system-ui, sans-serif",
+    headingWeight: 600,
+    bodyWeight: 400,
+    baseSize: "16px",
+    scale: "md",
+    lineHeight: "1.5",
+  },
+  layout: {
+    containerWidthPercent: 72,
+    maxWidthPx: 720,
+    align: "center",
+    pagePaddingX: "1rem",
+    pagePaddingY: "2rem",
+    cardPadding: "1.25rem",
+    questionGap: "1rem",
+    sectionGap: "2rem",
+  },
+  components: {
+    borderRadiusSm: "4px",
+    borderRadiusMd: "8px",
+    borderRadiusLg: "12px",
+    buttonVariant: "filled",
+    cardShadow: "sm",
+    inputBorderWidth: "1px",
+  },
+  fields: {
+    inputBackground: "#FFFFFF",
+    inputBorder: "#E5E7EB",
+    inputFocusBorder: "#4F46E5",
+    density: "comfortable",
+  },
+  effects: {
+    backgroundOverlayOpacity: 0,
+    backgroundBlurPx: 0,
+  },
+  animations: {
+    enabled: true,
+    style: "fade",
+    durationMs: 320,
+  },
+  progressBar: {
+    enabled: true,
+    style: "bar",
+    showPercentage: true,
+    showCount: true,
+  },
+  navigation: {
+    mode: "continuous",
+  },
+  responsive: {
+    mobileBreakpoint: 390,
+    tabletBreakpoint: 834,
+  },
+};

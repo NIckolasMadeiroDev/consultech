@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import * as api from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -29,35 +29,29 @@ import {
   type RespondFormQuestion,
 } from "@/components/forms/respond-form-view";
 import { SuggestFormCopyButton } from "@/components/admin/suggest-form-copy-button";
-
-const QUESTION_TYPES = [
-  "section",
-  "short_text",
-  "long_text",
-  "multiple_choice",
-  "dropdown",
-  "checkbox",
-  "scale",
-  "yes_no",
-  "date",
-  "number",
-] as const;
-
-const TYPE_LABELS: Record<(typeof QUESTION_TYPES)[number], string> = {
-  section: "Seção",
-  short_text: "Texto curto",
-  long_text: "Texto longo",
-  multiple_choice: "Múltipla escolha",
-  dropdown: "Lista suspensa",
-  checkbox: "Checkbox",
-  scale: "Escala",
-  yes_no: "Sim/Não",
-  date: "Data",
-  number: "Número",
-};
+import { QuestionTypeSelector } from "@/components/forms/question-type-selector";
+import { RichTextBlockEditor } from "@/components/forms/blocks/rich-text-block-editor";
+import { MarkdownBlockEditor } from "@/components/forms/blocks/markdown-block-editor";
+import { ImageBlockEditor } from "@/components/forms/blocks/image-block-editor";
+import { VideoBlockEditor } from "@/components/forms/blocks/video-block-editor";
+import { SeparatorBlockEditor } from "@/components/forms/blocks/separator-block-editor";
+import { FileDownloadBlockEditor } from "@/components/forms/blocks/file-download-block-editor";
+import { FileUploadBlockEditor } from "@/components/forms/blocks/file-upload-block-editor";
+import {
+  FORM_QUESTION_TYPE_GROUPS as QUESTION_TYPE_GROUPS,
+  FORM_QUESTION_TYPE_LABELS as TYPE_LABELS,
+  type FormQuestionTypeId,
+} from "@/lib/form-question-type-options";
+import {
+  acceptsAnswerValue,
+  allowsEmptyQuestionText,
+  CONTENT_BLOCK_TYPES,
+} from "@/lib/form-question-kinds";
+import { DEFAULT_FILE_UPLOAD_RULES } from "@/types/file-upload-rules";
+import type { FileUploadRules } from "@/types/file-upload-rules";
 
 type QuestionRow = {
-  type: (typeof QUESTION_TYPES)[number];
+  type: FormQuestionTypeId;
   text: string;
   required: boolean;
   orderIndex: number;
@@ -65,6 +59,19 @@ type QuestionRow = {
   scaleMin?: number;
   scaleMax?: number;
   _localId?: number;
+  sectionTitle?: string;
+  sectionDescription?: string;
+  helpText?: string;
+  placeholder?: string;
+  contentHtml?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  imageAlt?: string;
+  separatorStyle?: string;
+  fileDownloadUrl?: string;
+  fileDownloadLabel?: string;
+  fileDownloadMime?: string;
+  fileUploadRules?: FileUploadRules;
 };
 
 const DEFAULT_SCALE_MIN = 0;
@@ -96,8 +103,10 @@ function buildLocalPreviewForm(
   allowAnonymous: boolean;
   questions: RespondFormQuestion[];
 } | null {
-  const valid = rows.filter((q) => q.text.trim().length > 0);
-  const answerable = valid.filter((q) => q.type !== "section");
+  const valid = rows.filter(
+    (q) => q.text.trim().length > 0 || allowsEmptyQuestionText(q.type)
+  );
+  const answerable = valid.filter((q) => acceptsAnswerValue(q.type));
   if (answerable.length === 0) return null;
   const questions: RespondFormQuestion[] = valid.map((q, i) => {
     const opts =
@@ -108,11 +117,25 @@ function buildLocalPreviewForm(
       id: `pv-${q._localId ?? i}`,
       type: q.type,
       text: q.text.trim(),
-      required: q.type === "section" ? false : q.required,
+      required:
+        q.type === "section" || CONTENT_BLOCK_TYPES.has(q.type) ? false : q.required,
       orderIndex: i,
       options: opts?.length ? opts : undefined,
       scaleMin: q.type === "scale" ? (q.scaleMin ?? DEFAULT_SCALE_MIN) : undefined,
       scaleMax: q.type === "scale" ? (q.scaleMax ?? DEFAULT_SCALE_MAX) : undefined,
+      sectionTitle: q.sectionTitle?.trim() || undefined,
+      sectionDescription: q.sectionDescription?.trim() || undefined,
+      helpText: q.helpText?.trim() || undefined,
+      placeholder: q.placeholder?.trim() || undefined,
+      contentHtml: q.contentHtml?.trim() || undefined,
+      imageUrl: q.imageUrl?.trim() || undefined,
+      videoUrl: q.videoUrl?.trim() || undefined,
+      imageAlt: q.imageAlt?.trim() || undefined,
+      separatorStyle: q.separatorStyle?.trim() || undefined,
+      fileDownloadUrl: q.fileDownloadUrl?.trim() || undefined,
+      fileDownloadLabel: q.fileDownloadLabel?.trim() || undefined,
+      fileDownloadMime: q.fileDownloadMime?.trim() || undefined,
+      fileUploadRules: q.fileUploadRules ?? undefined,
     };
   });
   return {
@@ -129,6 +152,7 @@ export default function NewFormPage() {
   const { user } = useAuth();
   const toast = useToast();
   const userId = user?.id ?? "anonymous";
+  const uploadBlockImage = useCallback((file: File) => api.uploadAdminFormImage(file), []);
   const [step, setStep] = useState(1);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -225,8 +249,28 @@ export default function NewFormPage() {
       q.map((item, i) => {
         if (i !== index) return item;
         const next = { ...item, ...patch };
-        if (patch.type === "section" || next.type === "section") {
+        if (next.type === "section") {
           next.required = false;
+        }
+        if (CONTENT_BLOCK_TYPES.has(next.type)) {
+          next.required = false;
+        }
+        if (patch.type !== undefined) {
+          const t = patch.type;
+          if (t === "text_block" && !next.contentHtml?.trim()) next.contentHtml = "<p></p>";
+          if (t === "markdown_block" && !next.contentHtml?.trim()) next.contentHtml = "# Título\n\n";
+          if (t === "separator" && !next.separatorStyle) next.separatorStyle = "solid";
+          if (t === "file_upload" && !next.fileUploadRules) {
+            next.fileUploadRules = { ...DEFAULT_FILE_UPLOAD_RULES };
+          }
+          if (t === "image_block" && next.imageUrl === undefined) next.imageUrl = "";
+          if (t === "video_block" && next.videoUrl === undefined) next.videoUrl = "";
+          if (t === "image_block" && next.imageAlt === undefined) next.imageAlt = "";
+          if (t === "file_download") {
+            if (!next.fileDownloadUrl) next.fileDownloadUrl = "";
+            if (!next.fileDownloadLabel) next.fileDownloadLabel = "";
+            if (!next.fileDownloadMime) next.fileDownloadMime = "application/pdf";
+          }
         }
         if (
           (patch.type === "multiple_choice" ||
@@ -368,7 +412,7 @@ export default function NewFormPage() {
     const questionErrors: Record<number, { text?: string; options?: string; scale?: string }> = {};
     questions.forEach((q, i) => {
       const labelKind = q.type === "section" ? "seção" : "pergunta";
-      if (!q.text.trim()) {
+      if (!q.text.trim() && !allowsEmptyQuestionText(q.type)) {
         questionErrors[i] = {
           ...questionErrors[i],
           text: `Texto da ${labelKind} é obrigatório.`,
@@ -388,9 +432,11 @@ export default function NewFormPage() {
         }
       }
     });
-    const withText = questions.filter((q) => q.text.trim().length > 0);
+    const withText = questions.filter(
+      (q) => q.text.trim().length > 0 || allowsEmptyQuestionText(q.type)
+    );
     const answerableWithText = questions.filter(
-      (q) => q.type !== "section" && q.text.trim().length > 0
+      (q) => acceptsAnswerValue(q.type) && q.text.trim().length > 0
     );
     if (withText.length === 0 && questions.length > 0) {
       err.submit = "Adicione ao menos uma pergunta ou seção com texto.";
@@ -410,7 +456,9 @@ export default function NewFormPage() {
     }
     setSaving(true);
     try {
-      const valid = questions.filter((q) => q.text.trim().length > 0);
+      const valid = questions.filter(
+        (q) => q.text.trim().length > 0 || allowsEmptyQuestionText(q.type)
+      );
       const initialStatus: "draft" | "active" = wantActive ? "active" : "draft";
       const payload = {
         title: title.trim() || "Sem título",
@@ -429,11 +477,25 @@ export default function NewFormPage() {
           return {
             type: q.type,
             text: q.text.trim(),
-            required: q.type === "section" ? false : q.required,
+            required:
+              q.type === "section" || CONTENT_BLOCK_TYPES.has(q.type) ? false : q.required,
             orderIndex: i,
             options: opts?.length ? opts : undefined,
             scaleMin: q.type === "scale" ? (q.scaleMin ?? DEFAULT_SCALE_MIN) : undefined,
             scaleMax: q.type === "scale" ? (q.scaleMax ?? DEFAULT_SCALE_MAX) : undefined,
+            sectionTitle: q.sectionTitle?.trim() || null,
+            sectionDescription: q.sectionDescription?.trim() || null,
+            helpText: q.helpText?.trim() || null,
+            placeholder: q.placeholder?.trim() || null,
+            contentHtml: q.contentHtml?.trim() || null,
+            imageUrl: q.imageUrl?.trim() || null,
+            videoUrl: q.videoUrl?.trim() || null,
+            imageAlt: q.imageAlt?.trim() || null,
+            separatorStyle: q.separatorStyle?.trim() || null,
+            fileDownloadUrl: q.fileDownloadUrl?.trim() || null,
+            fileDownloadLabel: q.fileDownloadLabel?.trim() || null,
+            fileDownloadMime: q.fileDownloadMime?.trim() || null,
+            fileUploadRules: q.fileUploadRules ?? null,
           };
         }),
       };
@@ -834,7 +896,12 @@ export default function NewFormPage() {
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex items-center justify-between gap-2">
                             <span className="text-small font-medium text-[var(--text-secondary)]">
-                              {q.type === "section" ? "Seção" : `Pergunta ${i + 1}`} · {TYPE_LABELS[q.type]}
+                              {q.type === "section"
+                                ? "Seção"
+                                : CONTENT_BLOCK_TYPES.has(q.type)
+                                  ? `Bloco ${i + 1}`
+                                  : `Pergunta ${i + 1}`}{" "}
+                              · {TYPE_LABELS[q.type]}
                             </span>
                             <Button
                               type="button"
@@ -847,28 +914,94 @@ export default function NewFormPage() {
                               Remover
                             </Button>
                           </div>
-                          <select
+                          <QuestionTypeSelector
                             value={q.type}
-                            onChange={(e) =>
-                              updateQuestion(i, { type: e.target.value as QuestionRow["type"] })
+                            groups={QUESTION_TYPE_GROUPS}
+                            onChange={(value) =>
+                              updateQuestion(i, { type: value as QuestionRow["type"] })
                             }
-                            className="mb-2 w-full rounded-lg border border-neutral-300 bg-[var(--background)] px-3 py-2 text-body text-[var(--text-primary)] dark:border-neutral-600"
-                          >
-                            {QUESTION_TYPES.map((t) => (
-                              <option key={t} value={t}>
-                                {TYPE_LABELS[t]}
-                              </option>
-                            ))}
-                          </select>
+                          />
                           <Input
                             id={`new-q-${q._localId}-text`}
-                            placeholder={q.type === "section" ? "Título da seção" : "Texto da pergunta"}
+                            placeholder={
+                              q.type === "section"
+                                ? "Título da seção"
+                                : q.type === "separator"
+                                  ? "Rótulo opcional"
+                                  : "Texto da pergunta ou título do bloco"
+                            }
                             value={q.text}
                             onChange={(e) => updateQuestion(i, { text: e.target.value })}
                             error={validate.questions?.[i]?.text}
                             className="text-[var(--text-primary)]"
                           />
-                          {q.type !== "section" && (
+                          {q.type === "text_block" ? (
+                            <div className="mt-3">
+                              <RichTextBlockEditor
+                                html={q.contentHtml ?? ""}
+                                onChange={(html) => updateQuestion(i, { contentHtml: html })}
+                              />
+                            </div>
+                          ) : null}
+                          {q.type === "markdown_block" ? (
+                            <div className="mt-3">
+                              <MarkdownBlockEditor
+                                value={q.contentHtml ?? ""}
+                                onChange={(v) => updateQuestion(i, { contentHtml: v })}
+                              />
+                            </div>
+                          ) : null}
+                          {q.type === "image_block" ? (
+                            <div className="mt-3">
+                              <ImageBlockEditor
+                                imageUrl={q.imageUrl ?? ""}
+                                imageAlt={q.imageAlt ?? ""}
+                                onChange={(p) => updateQuestion(i, p)}
+                                onRequestUpload={uploadBlockImage}
+                              />
+                            </div>
+                          ) : null}
+                          {q.type === "video_block" ? (
+                            <div className="mt-3">
+                              <VideoBlockEditor
+                                videoUrl={q.videoUrl ?? ""}
+                                onChange={(v) => updateQuestion(i, { videoUrl: v })}
+                              />
+                            </div>
+                          ) : null}
+                          {q.type === "separator" ? (
+                            <div className="mt-3">
+                              <SeparatorBlockEditor
+                                styleId={q.separatorStyle ?? "solid"}
+                                onChange={(styleId) => updateQuestion(i, { separatorStyle: styleId })}
+                              />
+                            </div>
+                          ) : null}
+                          {q.type === "file_download" ? (
+                            <div className="mt-3">
+                              <FileDownloadBlockEditor
+                                fileUrl={q.fileDownloadUrl ?? ""}
+                                fileLabel={q.fileDownloadLabel ?? ""}
+                                fileMime={q.fileDownloadMime ?? ""}
+                                onChange={(p) =>
+                                  updateQuestion(i, {
+                                    fileDownloadUrl: p.fileUrl,
+                                    fileDownloadLabel: p.fileLabel,
+                                    fileDownloadMime: p.fileMime,
+                                  })
+                                }
+                              />
+                            </div>
+                          ) : null}
+                          {q.type === "file_upload" && q.fileUploadRules ? (
+                            <div className="mt-3">
+                              <FileUploadBlockEditor
+                                rules={q.fileUploadRules}
+                                onChange={(rules) => updateQuestion(i, { fileUploadRules: rules })}
+                              />
+                            </div>
+                          ) : null}
+                          {acceptsAnswerValue(q.type) && (
                             <label className="mt-2 flex cursor-pointer items-center gap-2">
                               <input
                                 type="checkbox"

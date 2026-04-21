@@ -1,3 +1,5 @@
+import type { ResponseFileUploadApiResult } from "@/lib/map-response-file-upload";
+
 const getBaseUrl = (): string => {
   if (globalThis.window === undefined) {
     return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -126,6 +128,62 @@ export async function createForm(
   return res.json();
 }
 
+export async function patchFormTheme(
+  id: string,
+  data: {
+    theme?: unknown;
+    headerImage?: string | null;
+    logoImage?: string | null;
+    backgroundImage?: string | null;
+    welcomeMessage?: string | null;
+    submitButtonText?: string;
+    successMessage?: string | null;
+    successPageHtml?: string | null;
+    successRedirectUrl?: string | null;
+    successRedirectDelay?: number | null;
+  },
+  userId?: string
+) {
+  const res = await fetch(`${getBaseUrl()}/api/forms/${id}/theme`, {
+    method: "PATCH",
+    headers: getHeaders(userId),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to save theme");
+  }
+  return res.json();
+}
+
+export async function exportFormThemeJson(id: string, userId?: string): Promise<Blob> {
+  const res = await fetch(`${getBaseUrl()}/api/forms/${id}/theme/export`, {
+    headers: getHeaders(userId),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to export theme");
+  }
+  return res.blob();
+}
+
+export async function importFormThemeJson(
+  id: string,
+  payload: { version?: number; theme: unknown },
+  userId?: string
+) {
+  const res = await fetch(`${getBaseUrl()}/api/forms/${id}/theme/import`, {
+    method: "POST",
+    headers: getHeaders(userId),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to import theme");
+  }
+  return res.json();
+}
+
 export async function updateForm(
   id: string,
   data: {
@@ -138,7 +196,21 @@ export async function updateForm(
     status?: string;
     slug?: string | null;
     allowAnonymous?: boolean;
+    responseSettings?: {
+      respondentIdentificationMode?: "required" | "optional" | "anonymous";
+      responseLayoutMode?: "single_page" | "wizard_by_section" | "wizard_by_question";
+      showProgressBar?: boolean;
+      allowSaveDraft?: boolean;
+    };
     questions?: Array<Record<string, unknown>>;
+    theme?: unknown;
+    headerImage?: string | null;
+    logoImage?: string | null;
+    backgroundImage?: string | null;
+    welcomeMessage?: string | null;
+    submitButtonText?: string;
+    successMessage?: string | null;
+    sectionVisibilityRules?: Array<Record<string, unknown>>;
   },
   userId?: string
 ) {
@@ -182,6 +254,80 @@ export async function duplicateForm(id: string, userId?: string) {
   return res.json();
 }
 
+export async function uploadAdminFormImage(
+  file: File,
+  options?: { scope?: "blocks" | "branding" }
+): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (options?.scope) {
+    fd.append("scope", options.scope);
+  }
+  const res = await fetch(`${getBaseUrl()}/api/upload/image`, {
+    method: "POST",
+    body: fd,
+    credentials: "include",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha no envio da imagem");
+  }
+  const j = (await res.json()) as { url?: string };
+  if (!j.url) throw new Error("Falha no envio da imagem");
+  return j.url;
+}
+
+export type { ResponseFileUploadApiResult } from "@/lib/map-response-file-upload";
+
+export async function uploadResponseFile(
+  formId: string,
+  questionId: string,
+  file: File
+): Promise<ResponseFileUploadApiResult> {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("questionId", questionId);
+  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/response-file`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha no envio do ficheiro");
+  }
+  const j = (await res.json()) as ResponseFileUploadApiResult;
+  if (!j.publicUrl || !j.storagePath) throw new Error("Falha no envio do ficheiro");
+  return j;
+}
+
+export async function uploadFormStaticAsset(
+  formId: string,
+  file: File,
+  options?: { label?: string },
+  userId?: string
+): Promise<{ id: string; publicUrl: string; storagePath: string; mimeType: string; sizeBytes: number }> {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (options?.label?.trim()) {
+    fd.append("label", options.label.trim());
+  }
+  const headers: Record<string, string> = {};
+  if (userId) {
+    headers["x-user-id"] = userId;
+  }
+  const res = await fetch(`${getBaseUrl()}/api/forms/${formId}/assets`, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: fd,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Falha no envio do recurso");
+  }
+  return res.json();
+}
+
 export async function fetchFormResponses(
   formId: string,
   userId?: string,
@@ -190,6 +336,7 @@ export async function fetchFormResponses(
     endDate?: string;
     respondentSearch?: string;
     answerSearch?: string;
+    department?: string;
   }
 ) {
   const url = new URL(`${getBaseUrl()}/api/forms/${formId}/responses`);
@@ -201,6 +348,9 @@ export async function fetchFormResponses(
   if (params?.answerSearch?.trim()) {
     url.searchParams.set("answerSearch", params.answerSearch.trim());
   }
+  if (params?.department?.trim()) {
+    url.searchParams.set("department", params.department.trim());
+  }
   const res = await fetch(url.toString(), {
     headers: getHeaders(userId),
   });
@@ -208,6 +358,89 @@ export async function fetchFormResponses(
     if (res.status === 404) throw new Error("Form not found");
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error ?? "Failed to fetch responses");
+  }
+  return res.json();
+}
+
+export async function fetchFormResponsesPage(
+  formId: string,
+  userId?: string,
+  params?: {
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }
+): Promise<{
+  data: Array<{
+    id: string;
+    submittedAt: string;
+    respondent: {
+      id: string;
+      name: string;
+      email: string;
+      employeeId?: string | null;
+      department?: string | null;
+    } | null;
+    answers: Array<{ questionId: string; value: unknown }>;
+  }>;
+  total: number;
+  page: number;
+  limit: number;
+}> {
+  const url = new URL(`${getBaseUrl()}/api/forms/${formId}/responses`);
+  url.searchParams.set("page", String(params?.page ?? 1));
+  url.searchParams.set("limit", String(Math.min(params?.limit ?? 25, 100)));
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  const res = await fetch(url.toString(), { headers: getHeaders(userId) });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Form not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch responses");
+  }
+  return res.json();
+}
+
+export type FormResponseAggregate = {
+  questionId: string;
+  text: string;
+  type: string;
+  total: number;
+  empty: number;
+  optionCounts?: Record<string, number>;
+  numericSamples?: number[];
+  textSamples?: string[];
+};
+
+export async function fetchFormResponsesAggregate(
+  formId: string,
+  userId?: string,
+  params?: {
+    startDate?: string;
+    endDate?: string;
+    respondentSearch?: string;
+    answerSearch?: string;
+    department?: string;
+  }
+): Promise<{ aggregates: FormResponseAggregate[] }> {
+  const url = new URL(`${getBaseUrl()}/api/forms/${formId}/responses/aggregate`);
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  if (params?.respondentSearch?.trim()) {
+    url.searchParams.set("respondentSearch", params.respondentSearch.trim());
+  }
+  if (params?.answerSearch?.trim()) {
+    url.searchParams.set("answerSearch", params.answerSearch.trim());
+  }
+  if (params?.department?.trim()) {
+    url.searchParams.set("department", params.department.trim());
+  }
+  const res = await fetch(url.toString(), { headers: getHeaders(userId) });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("Form not found");
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Failed to fetch aggregate");
   }
   return res.json();
 }
@@ -232,10 +465,15 @@ export async function fetchFormResponsesSummary(
 export async function downloadFormResponsesExport(
   formId: string,
   format: "csv" | "json" | "xlsx",
-  userId?: string
+  userId?: string,
+  params?: { startDate?: string; endDate?: string; limit?: number }
 ): Promise<void> {
-  const url = `${getBaseUrl()}/api/forms/${formId}/responses/export?format=${format}`;
-  const res = await fetch(url, { headers: getHeaders(userId) });
+  const url = new URL(`${getBaseUrl()}/api/forms/${formId}/responses/export`);
+  url.searchParams.set("format", format);
+  if (params?.startDate) url.searchParams.set("startDate", params.startDate);
+  if (params?.endDate) url.searchParams.set("endDate", params.endDate);
+  if (params?.limit != null) url.searchParams.set("limit", String(params.limit));
+  const res = await fetch(url.toString(), { headers: getHeaders(userId) });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error ?? "Failed to export");
@@ -267,6 +505,7 @@ export async function requestFormResponsesInsights(
     endDate?: string;
     respondentSearch?: string;
     answerSearch?: string;
+    department?: string;
   },
   userId?: string
 ): Promise<{ content: string; meta: FormResponsesInsightsMeta }> {
@@ -350,6 +589,14 @@ export async function fetchDashboardAnalytics(
   }>;
   avgTimePerResponseSeconds: null;
   avgTimeHint: string;
+  hideAbandonmentByDefault: boolean;
+  responseContentByForm: Array<{
+    formId: string;
+    title: string;
+    responseCount: number;
+    allAnswerableRequired: boolean;
+    aggregates: FormResponseAggregate[];
+  }>;
 }> {
   const url = new URL(`${getBaseUrl()}/api/dashboards/${id}/analytics`);
   if (params?.startDate) url.searchParams.set("startDate", params.startDate);
@@ -436,6 +683,14 @@ export async function submitResponse(data: {
   formId: string;
   respondent?: { name: string; email: string; employeeId?: string; department?: string };
   answers: Array<{ questionId: string; value: string | number | boolean | string[] }>;
+  attachments?: Array<{
+    questionId: string;
+    storagePath: string;
+    publicUrl: string;
+    sizeBytes: number;
+    mimeType: string;
+    originalFilename: string;
+  }>;
 }) {
   const res = await fetch(`${getBaseUrl()}/api/responses/submit`, {
     method: "POST",

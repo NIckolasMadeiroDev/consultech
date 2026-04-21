@@ -1,6 +1,29 @@
 import { describe, it, expect, vi } from "vitest";
 import { submitResponse } from "./submit-response";
 import { FormPausedError } from "./form-paused-error";
+import { defaultFormResponseSettings } from "@/types/form-response-settings";
+
+const mockQuestionShortText = {
+  id: "q1",
+  formId: "form-1",
+  type: "short_text" as const,
+  text: "Pergunta 1",
+  required: true,
+  orderIndex: 0,
+};
+
+const questionsRepo = {
+  findByFormId: vi.fn().mockResolvedValue([mockQuestionShortText]),
+};
+
+const rs = {
+  required: defaultFormResponseSettings(false),
+  anonymous: defaultFormResponseSettings(true),
+  optional: {
+    ...defaultFormResponseSettings(false),
+    respondentIdentificationMode: "optional" as const,
+  },
+};
 
 describe("submitResponse", () => {
   it("deve lançar erro quando formulário não existe", async () => {
@@ -16,7 +39,8 @@ describe("submitResponse", () => {
         },
         formRepo as never,
         respondentRepo as never,
-        responseRepo as never
+        responseRepo as never,
+        questionsRepo as never
       )
     ).rejects.toThrow("Form not found");
   });
@@ -27,6 +51,7 @@ describe("submitResponse", () => {
         id: "form-1",
         status: "paused",
         pausedMessage: "Voltamos segunda",
+        responseSettings: rs.required,
       }),
     };
     let err: unknown;
@@ -39,7 +64,8 @@ describe("submitResponse", () => {
         },
         formRepo as never,
         {} as never,
-        {} as never
+        {} as never,
+        questionsRepo as never
       );
     } catch (e) {
       err = e;
@@ -53,6 +79,7 @@ describe("submitResponse", () => {
       findById: vi.fn().mockResolvedValue({
         id: "form-1",
         status: "archived",
+        responseSettings: rs.required,
       }),
     };
     await expect(
@@ -64,7 +91,8 @@ describe("submitResponse", () => {
         },
         formRepo as never,
         {} as never,
-        {} as never
+        {} as never,
+        questionsRepo as never
       )
     ).rejects.toThrow("Form does not accept responses");
   });
@@ -74,6 +102,7 @@ describe("submitResponse", () => {
       findById: vi.fn().mockResolvedValue({
         id: "form-1",
         status: "active",
+        responseSettings: rs.required,
       }),
     };
     const respondent = {
@@ -102,7 +131,8 @@ describe("submitResponse", () => {
       },
       formRepo as never,
       respondentRepo as never,
-      responseRepo as never
+      responseRepo as never,
+      questionsRepo as never
     );
     expect(result).toEqual(response);
     expect(respondentRepo.create).toHaveBeenCalledWith({
@@ -113,30 +143,27 @@ describe("submitResponse", () => {
       formId: "form-1",
       respondentId: "resp-1",
       answers: [{ questionId: "q1", value: "R1" }],
+      attachments: undefined,
+      submissionMetadata: { respondentIdentificationMode: "required" },
     });
   });
 
-  it("deve criar respondente anônimo quando allowAnonymous e sem respondent", async () => {
+  it("deve gravar resposta sem respondente em modo anónimo", async () => {
     const formRepo = {
       findById: vi.fn().mockResolvedValue({
         id: "form-1",
         status: "active",
         allowAnonymous: true,
+        responseSettings: rs.anonymous,
       }),
-    };
-    const respondent = {
-      id: "anon-1",
-      name: "Anônimo",
-      email: expect.stringMatching(/^anonymous-[a-f0-9-]+@anonymous\.local$/),
-      createdAt: new Date(),
     };
     const response = {
       id: "r1",
       formId: "form-1",
-      respondentId: "anon-1",
+      respondentId: null,
       submittedAt: new Date(),
     };
-    const respondentRepo = { create: vi.fn().mockResolvedValue(respondent) };
+    const respondentRepo = { create: vi.fn() };
     const responseRepo = { create: vi.fn().mockResolvedValue(response) };
     const result = await submitResponse(
       {
@@ -145,15 +172,18 @@ describe("submitResponse", () => {
       },
       formRepo as never,
       respondentRepo as never,
-      responseRepo as never
+      responseRepo as never,
+      questionsRepo as never
     );
     expect(result).toEqual(response);
-    expect(respondentRepo.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: "Anônimo",
-        email: expect.stringMatching(/^anonymous-[a-f0-9-]+@anonymous\.local$/),
-      })
-    );
+    expect(respondentRepo.create).not.toHaveBeenCalled();
+    expect(responseRepo.create).toHaveBeenCalledWith({
+      formId: "form-1",
+      respondentId: null,
+      answers: [{ questionId: "q1", value: "R1" }],
+      attachments: undefined,
+      submissionMetadata: { respondentIdentificationMode: "anonymous" },
+    });
   });
 
   it("deve lançar erro quando sem respondent e form não permite anônimo", async () => {
@@ -162,6 +192,7 @@ describe("submitResponse", () => {
         id: "form-1",
         status: "active",
         allowAnonymous: false,
+        responseSettings: rs.required,
       }),
     };
     await expect(
@@ -172,7 +203,8 @@ describe("submitResponse", () => {
         },
         formRepo as never,
         {} as never,
-        {} as never
+        {} as never,
+        questionsRepo as never
       )
     ).rejects.toThrow("Respondent data is required");
   });

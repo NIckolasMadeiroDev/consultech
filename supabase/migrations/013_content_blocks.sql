@@ -1,0 +1,9 @@
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS content_html TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS image_url TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS video_url TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS image_alt TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS separator_style TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS file_download_url TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS file_download_label TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS file_download_mime TEXT;
+ALTER TABLE form_question ADD COLUMN IF NOT EXISTS file_upload_rules JSONB;

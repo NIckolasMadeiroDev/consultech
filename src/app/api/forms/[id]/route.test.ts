@@ -18,6 +18,7 @@ import {
   getAuditLogRepository,
   getFormRevisionRepository,
 } from "@/infrastructure/database/repositories";
+import { DEFAULT_FORM_THEME } from "@/types/form-theme-defaults";
 
 const fullForm = (over: Partial<Record<string, unknown>> = {}) => ({
   id: "f1",
@@ -30,6 +31,8 @@ const fullForm = (over: Partial<Record<string, unknown>> = {}) => ({
   version: 1,
   slug: undefined,
   allowAnonymous: false,
+  theme: DEFAULT_FORM_THEME,
+  submitButtonText: "Enviar",
   createdBy: "admin",
   createdAt: new Date(),
   updatedAt: new Date(),

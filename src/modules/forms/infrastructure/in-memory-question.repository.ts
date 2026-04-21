@@ -17,6 +17,22 @@ export class InMemoryQuestionRepository implements IQuestionRepository {
         options: q.options,
         scaleMin: q.scaleMin,
         scaleMax: q.scaleMax,
+        conditionQuestionId: q.conditionQuestionId,
+        conditionOperator: q.conditionOperator,
+        conditionValue: q.conditionValue,
+        sectionTitle: q.sectionTitle,
+        sectionDescription: q.sectionDescription,
+        helpText: q.helpText,
+        placeholder: q.placeholder,
+        contentHtml: q.contentHtml,
+        imageUrl: q.imageUrl,
+        videoUrl: q.videoUrl,
+        imageAlt: q.imageAlt,
+        separatorStyle: q.separatorStyle,
+        fileDownloadUrl: q.fileDownloadUrl,
+        fileDownloadLabel: q.fileDownloadLabel,
+        fileDownloadMime: q.fileDownloadMime,
+        fileUploadRules: q.fileUploadRules,
       };
       store.set(question.id, question);
       return question;

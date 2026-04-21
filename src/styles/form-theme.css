@@ -1,0 +1,68 @@
+.form-theme-root {
+  background-color: var(--form-color-page-bg);
+  color: var(--form-text-primary);
+  font-family: var(--form-font-body);
+  font-size: var(--form-base-size);
+  line-height: var(--form-line-height);
+  letter-spacing: var(--form-letter-spacing);
+}
+
+.form-theme-root .form-theme-heading,
+.form-theme-root h1 {
+  font-family: var(--form-font-heading);
+  font-weight: var(--form-heading-weight);
+  color: var(--form-text-primary);
+}
+
+.form-theme-canvas {
+  width: var(--form-canvas-width);
+  margin-inline-start: var(--form-canvas-margin-start);
+  margin-inline-end: var(--form-canvas-margin-end);
+}
+
+.form-theme-scale-sm {
+  --form-base-size: 14px;
+}
+
+.form-theme-scale-md {
+  --form-base-size: 16px;
+}
+
+.form-theme-scale-lg {
+  --form-base-size: 18px;
+}
+
+.form-theme-card.form-theme-surface {
+  background-color: var(--form-color-surface);
+  border-color: var(--form-border-color);
+  border-radius: var(--form-radius-lg);
+  border-width: var(--form-input-border-width);
+  padding: var(--form-card-pad);
+}
+
+.form-theme-input {
+  border-radius: var(--form-radius-md);
+  border-width: var(--form-input-border-width);
+  border-color: var(--form-input-border);
+  background-color: var(--form-input-bg);
+  color: var(--form-text-primary);
+}
+
+.form-theme-input:focus-visible {
+  border-color: var(--form-input-focus-border);
+  outline: 2px solid var(--form-focus-ring);
+  outline-offset: 2px;
+}
+
+.form-theme-progress-track {
+  background-color: var(--form-progress-track);
+}
+
+.form-theme-progress-fill {
+  background-color: var(--form-progress-fill);
+}
+
+.form-theme-bg-layer {
+  opacity: var(--form-bg-overlay-opacity);
+  backdrop-filter: blur(var(--form-bg-blur-px));
+}

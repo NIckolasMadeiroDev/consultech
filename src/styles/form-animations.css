@@ -1,0 +1,62 @@
+.form-q-anim--fade,
+.form-q-anim--slide,
+.form-q-anim--scale {
+  animation-duration: var(--form-anim-duration, 320ms);
+}
+
+.form-q-anim--fade {
+  animation-name: form-q-fade-in;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.form-q-anim--slide {
+  animation-name: form-q-slide-in;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.form-q-anim--scale {
+  animation-name: form-q-scale-in;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+@keyframes form-q-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes form-q-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes form-q-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form-q-anim--fade,
+  .form-q-anim--slide,
+  .form-q-anim--scale {
+    animation: none !important;
+  }
+}

@@ -8,6 +8,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useForm } from "@/hooks/useForm";
 import { RespondFormView, type RespondFormQuestion } from "@/components/forms/respond-form-view";
+import { FormRespondAppearance } from "@/components/forms/form-respond-appearance";
+import { DEFAULT_FORM_THEME } from "@/types/form-theme-defaults";
+import type { FormResponseSettings } from "@/types/form-response-settings";
+import { defaultFormResponseSettings } from "@/types/form-response-settings";
 
 export default function RespondFormPage() {
   const params = useParams();
@@ -119,10 +123,13 @@ export default function RespondFormPage() {
   }
 
   const questions = (form.questions ?? []) as RespondFormQuestion[];
+  const theme = form.theme ?? DEFAULT_FORM_THEME;
+  const responseSettings: FormResponseSettings =
+    form.responseSettings ?? defaultFormResponseSettings(Boolean(form.allowAnonymous));
 
   return (
-    <main className="min-h-screen bg-[var(--background)]">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-neutral-200 bg-[var(--background)]/95 px-4 py-3 backdrop-blur sm:px-6 dark:border-neutral-700">
+    <main className="min-h-screen scroll-smooth">
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-neutral-200 bg-[var(--background)]/95 px-4 py-3 backdrop-blur sm:px-6 dark:border-neutral-700">
         <Link
           href="/"
           className="inline-flex items-center gap-1 text-small font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
@@ -132,18 +139,32 @@ export default function RespondFormPage() {
         </Link>
         <ThemeToggle />
       </header>
-      <div className="mx-auto max-w-content px-4 py-6 sm:px-6 sm:py-8 md:px-8">
+      <FormRespondAppearance
+        theme={theme}
+        headerImage={form.headerImage}
+        logoImage={form.logoImage}
+        backgroundImage={form.backgroundImage}
+      >
         <RespondFormView
           formId={form.id}
+          themeVisual={theme}
           form={{
             title: form.title,
             description: form.description,
             closingMessage: form.closingMessage,
             allowAnonymous: form.allowAnonymous,
+            responseSettings,
+            welcomeMessage: form.welcomeMessage,
+            submitButtonText: form.submitButtonText,
+            successMessage: form.successMessage,
+            successPageHtml: form.successPageHtml,
+            successRedirectUrl: form.successRedirectUrl,
+            successRedirectDelay: form.successRedirectDelay ?? undefined,
+            sectionVisibilityRules: (form as { sectionVisibilityRules?: unknown }).sectionVisibilityRules,
             questions,
           }}
         />
-      </div>
+      </FormRespondAppearance>
     </main>
   );
 }

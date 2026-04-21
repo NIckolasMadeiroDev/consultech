@@ -10,7 +10,14 @@ export type QuestionType =
   | "yes_no"
   | "date"
   | "number"
-  | "section";
+  | "section"
+  | "text_block"
+  | "markdown_block"
+  | "separator"
+  | "image_block"
+  | "video_block"
+  | "file_download"
+  | "file_upload";
 
 export type LinkStatus = "active" | "paused" | "expired";
 

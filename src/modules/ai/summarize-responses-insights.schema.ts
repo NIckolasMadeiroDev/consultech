@@ -6,6 +6,7 @@ export const summarizeResponsesInsightsBodySchema = z.object({
   endDate: z.string().max(32).optional(),
   respondentSearch: z.string().max(200).optional(),
   answerSearch: z.string().max(200).optional(),
+  department: z.string().max(200).optional(),
 });
 
 export type SummarizeResponsesInsightsBody = z.infer<typeof summarizeResponsesInsightsBodySchema>;

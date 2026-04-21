@@ -1,7 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type Prisma } from "@prisma/client";
 import type { Form } from "@/core/entities";
 import type { CreateFormData, IFormRepository } from "../form.repository.interface";
 import type { UpdateFormInput } from "../form.schema";
+import { mergeFormTheme, parseFormThemeFromJson } from "../merge-form-theme";
+import {
+  parseFormResponseSettings,
+  patchFormResponseSettings,
+} from "@/types/form-response-settings";
+import { parseFormSectionVisibilityRules } from "@/types/form-section-visibility";
 
 function toFormEntity(row: {
   id: string;
@@ -16,6 +22,18 @@ function toFormEntity(row: {
   version: number;
   slug: string | null;
   allowAnonymous: boolean;
+  responseSettings: unknown;
+  sectionVisibilityRules: unknown;
+  theme: unknown;
+  headerImage: string | null;
+  logoImage: string | null;
+  backgroundImage: string | null;
+  welcomeMessage: string | null;
+  submitButtonText: string;
+  successMessage: string | null;
+  successPageHtml: string | null;
+  successRedirectUrl: string | null;
+  successRedirectDelay: number;
   createdBy: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -33,6 +51,18 @@ function toFormEntity(row: {
     version: row.version,
     slug: row.slug ?? undefined,
     allowAnonymous: row.allowAnonymous,
+    responseSettings: parseFormResponseSettings(row.responseSettings, row.allowAnonymous),
+    sectionVisibilityRules: parseFormSectionVisibilityRules(row.sectionVisibilityRules),
+    theme: parseFormThemeFromJson(row.theme),
+    headerImage: row.headerImage ?? undefined,
+    logoImage: row.logoImage ?? undefined,
+    backgroundImage: row.backgroundImage ?? undefined,
+    welcomeMessage: row.welcomeMessage ?? undefined,
+    submitButtonText: row.submitButtonText,
+    successMessage: row.successMessage ?? undefined,
+    successPageHtml: row.successPageHtml ?? undefined,
+    successRedirectUrl: row.successRedirectUrl ?? undefined,
+    successRedirectDelay: row.successRedirectDelay ?? 0,
     createdBy: row.createdBy ?? "",
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -58,6 +88,8 @@ export class PrismaFormRepository implements IFormRepository {
         createdBy: data.createdBy || null,
         slug: data.slug || null,
         allowAnonymous: data.allowAnonymous ?? false,
+        responseSettings: {},
+        sectionVisibilityRules: [],
       },
       include: folderInclude,
     });
@@ -90,6 +122,8 @@ export class PrismaFormRepository implements IFormRepository {
   }
 
   async update(id: string, data: UpdateFormInput): Promise<Form | null> {
+    const existing = await this.prisma.form.findUnique({ where: { id } });
+    if (!existing) return null;
     const updateData: {
       title?: string;
       description?: string;
@@ -100,7 +134,22 @@ export class PrismaFormRepository implements IFormRepository {
       status?: string;
       slug?: string | null;
       allowAnonymous?: boolean;
+      theme?: object;
+      headerImage?: string | null;
+      logoImage?: string | null;
+      backgroundImage?: string | null;
+      welcomeMessage?: string | null;
+      submitButtonText?: string;
+      successMessage?: string | null;
+      successPageHtml?: string | null;
+      successRedirectUrl?: string | null;
+      successRedirectDelay?: number;
+      responseSettings?: object;
+      sectionVisibilityRules?: object;
     } = {};
+    if (data.sectionVisibilityRules !== undefined) {
+      updateData.sectionVisibilityRules = data.sectionVisibilityRules as object;
+    }
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.closingMessage !== undefined) updateData.closingMessage = data.closingMessage;
@@ -109,10 +158,40 @@ export class PrismaFormRepository implements IFormRepository {
     if (data.isTemplate !== undefined) updateData.isTemplate = data.isTemplate;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.slug !== undefined) updateData.slug = data.slug;
-    if (data.allowAnonymous !== undefined) updateData.allowAnonymous = data.allowAnonymous;
+    if (data.responseSettings !== undefined) {
+      const merged = patchFormResponseSettings(
+        parseFormResponseSettings(existing.responseSettings, existing.allowAnonymous),
+        data.responseSettings
+      );
+      updateData.responseSettings = merged;
+      updateData.allowAnonymous = merged.respondentIdentificationMode === "anonymous";
+    } else if (data.allowAnonymous !== undefined) {
+      const merged = patchFormResponseSettings(
+        parseFormResponseSettings(existing.responseSettings, existing.allowAnonymous),
+        {
+          respondentIdentificationMode: data.allowAnonymous ? "anonymous" : "required",
+        }
+      );
+      updateData.responseSettings = merged;
+      updateData.allowAnonymous = merged.respondentIdentificationMode === "anonymous";
+    }
+    if (data.theme !== undefined) {
+      updateData.theme = mergeFormTheme(parseFormThemeFromJson(existing.theme), data.theme) as object;
+    }
+    if (data.headerImage !== undefined) updateData.headerImage = data.headerImage;
+    if (data.logoImage !== undefined) updateData.logoImage = data.logoImage;
+    if (data.backgroundImage !== undefined) updateData.backgroundImage = data.backgroundImage;
+    if (data.welcomeMessage !== undefined) updateData.welcomeMessage = data.welcomeMessage;
+    if (data.submitButtonText !== undefined) updateData.submitButtonText = data.submitButtonText;
+    if (data.successMessage !== undefined) updateData.successMessage = data.successMessage;
+    if (data.successPageHtml !== undefined) updateData.successPageHtml = data.successPageHtml;
+    if (data.successRedirectUrl !== undefined) updateData.successRedirectUrl = data.successRedirectUrl;
+    if (data.successRedirectDelay !== undefined) {
+      updateData.successRedirectDelay = data.successRedirectDelay ?? 0;
+    }
     const row = await this.prisma.form.update({
       where: { id },
-      data: updateData,
+      data: updateData as Prisma.FormUpdateInput,
       include: folderInclude,
     });
     return toFormEntity(row);
@@ -159,6 +238,18 @@ export class PrismaFormRepository implements IFormRepository {
         createdBy: createdBy || null,
         slug: null,
         allowAnonymous: existing.allowAnonymous,
+        responseSettings: existing.responseSettings ?? {},
+        sectionVisibilityRules: existing.sectionVisibilityRules ?? [],
+        theme: existing.theme ?? {},
+        headerImage: existing.headerImage,
+        logoImage: existing.logoImage,
+        backgroundImage: existing.backgroundImage,
+        welcomeMessage: existing.welcomeMessage,
+        submitButtonText: existing.submitButtonText,
+        successMessage: existing.successMessage,
+        successPageHtml: existing.successPageHtml,
+        successRedirectUrl: existing.successRedirectUrl,
+        successRedirectDelay: existing.successRedirectDelay,
       },
       include: folderInclude,
     });

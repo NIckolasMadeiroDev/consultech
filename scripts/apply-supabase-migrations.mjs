@@ -70,6 +70,13 @@ const files = [
   "009_finance_goals.sql",
   "010_finance_events.sql",
   "011_dashboard_charts.sql",
+  "012_form_descriptions.sql",
+  "013_content_blocks.sql",
+  "014_form_themes.sql",
+  "015_form_phase5_visuals.sql",
+  "016_form_attachments.sql",
+  "017_form_response_settings.sql",
+  "018_form_section_visibility.sql",
 ];
 
 async function main() {

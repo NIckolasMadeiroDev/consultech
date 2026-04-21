@@ -1,15 +1,22 @@
 import { describe, it, expect } from "vitest";
+import type { Form } from "@/core/entities";
+import { DEFAULT_FORM_THEME } from "@/types/form-theme-defaults";
+import { defaultFormResponseSettings } from "@/types/form-response-settings";
 import { formDTO, formListDTO } from "./form.dto";
 
 describe("form.dto", () => {
-  const form = {
+  const form: Form = {
     id: "f1",
     title: "Form 1",
     description: "Desc",
-    status: "draft" as const,
+    status: "draft",
     version: 1,
     slug: "form-1",
     allowAnonymous: false,
+    responseSettings: defaultFormResponseSettings(false),
+    sectionVisibilityRules: [],
+    theme: DEFAULT_FORM_THEME,
+    submitButtonText: "Enviar",
     createdBy: "admin-1",
     createdAt: new Date("2025-01-01"),
     updatedAt: new Date("2025-01-02"),
@@ -24,6 +31,7 @@ describe("form.dto", () => {
     expect(dto.version).toBe(1);
     expect(dto.slug).toBe("form-1");
     expect(dto.allowAnonymous).toBe(false);
+    expect(dto.responseSettings.respondentIdentificationMode).toBe("required");
     expect(dto.createdBy).toBe("admin-1");
     expect(dto.createdAt).toEqual(form.createdAt);
     expect(dto.updatedAt).toEqual(form.updatedAt);

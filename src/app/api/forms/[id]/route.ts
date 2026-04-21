@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { updateForm } from "@/modules/forms/update-form";
-import { updateFormSchema } from "@/modules/forms/form.schema";
+import { updateFormSchema, type UpdateFormInput } from "@/modules/forms/form.schema";
 import { formWithQuestionsDTO, formDTO } from "@/modules/forms/form.dto";
 import {
   getFormRepository,
@@ -12,6 +12,9 @@ import {
 import { getSession } from "@/lib/auth-session";
 import type { Question } from "@/core/entities";
 import { diffFormSnapshots, snapshotFormState } from "@/modules/forms/build-form-revision";
+import { normalizeQuestionForPersistence } from "@/modules/forms/normalize-question-payload";
+
+type PatchQuestionRow = NonNullable<UpdateFormInput["questions"]>[number];
 
 export async function GET(
   req: NextRequest,
@@ -37,7 +40,14 @@ export async function PATCH(
   return apiHandler(async () => {
     const { id } = context.params;
     const body = await req.json();
-    const data = updateFormSchema.parse(body);
+    const parsed = updateFormSchema.parse(body);
+    const data =
+      parsed.questions !== undefined
+        ? {
+            ...parsed,
+            questions: parsed.questions.map(normalizeQuestionForPersistence),
+          }
+        : parsed;
     const formRepo = getFormRepository();
     const questionRepo = getQuestionRepository();
     const revisionRepo = getFormRevisionRepository();
@@ -57,22 +67,7 @@ export async function PATCH(
       const idsToDelete = existing.filter((q) => !payloadIds.has(q.id)).map((q) => q.id);
       const toUpdate: (Partial<Question> & { id: string })[] = [];
       const toCreate: Array<Omit<Question, "id">> = [];
-      data.questions.forEach(
-        (
-          q: {
-            id?: string;
-            type: string;
-            text: string;
-            required: boolean;
-            options?: string[];
-            scaleMin?: number;
-            scaleMax?: number;
-            conditionQuestionId?: string | null;
-            conditionOperator?: string | null;
-            conditionValue?: unknown;
-          },
-          orderIndex: number
-        ) => {
+      data.questions.forEach((q: PatchQuestionRow, orderIndex: number) => {
           const shared = {
             type: q.type as Question["type"],
             text: q.text,
@@ -84,6 +79,19 @@ export async function PATCH(
             conditionQuestionId: q.conditionQuestionId ?? undefined,
             conditionOperator: q.conditionOperator ?? undefined,
             conditionValue: q.conditionValue ?? undefined,
+            sectionTitle: q.sectionTitle ?? undefined,
+            sectionDescription: q.sectionDescription ?? undefined,
+            helpText: q.helpText ?? undefined,
+            placeholder: q.placeholder ?? undefined,
+            contentHtml: q.contentHtml ?? undefined,
+            imageUrl: q.imageUrl ?? undefined,
+            videoUrl: q.videoUrl ?? undefined,
+            imageAlt: q.imageAlt ?? undefined,
+            separatorStyle: q.separatorStyle ?? undefined,
+            fileDownloadUrl: q.fileDownloadUrl ?? undefined,
+            fileDownloadLabel: q.fileDownloadLabel ?? undefined,
+            fileDownloadMime: q.fileDownloadMime ?? undefined,
+            fileUploadRules: q.fileUploadRules ?? undefined,
           };
           if (q.id && existingIds.has(q.id)) {
             toUpdate.push({
@@ -96,8 +104,7 @@ export async function PATCH(
               ...shared,
             });
           }
-        }
-      );
+      });
       if (toUpdate.length > 0) {
         await questionRepo.updateMany(id, toUpdate);
       }

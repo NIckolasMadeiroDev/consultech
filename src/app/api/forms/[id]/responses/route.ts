@@ -19,6 +19,8 @@ function parseFilters(url: URL): ResponseFilters | undefined {
   if (respondentSearch) filters.respondentSearch = respondentSearch;
   const answerSearch = url.searchParams.get("answerSearch")?.trim();
   if (answerSearch) filters.answerValue = answerSearch;
+  const department = url.searchParams.get("department")?.trim();
+  if (department) filters.department = department;
   return Object.keys(filters).length > 0 ? filters : undefined;
 }
 
@@ -54,7 +56,7 @@ export async function GET(
       const result = await Promise.all(
         responses.map(async (r) => {
           const [respondent, answers] = await Promise.all([
-            respondentRepo.findById(r.respondentId),
+            r.respondentId ? respondentRepo.findById(r.respondentId) : Promise.resolve(null),
             responseRepo.getAnswersByResponseId(r.id),
           ]);
           return {
@@ -82,7 +84,7 @@ export async function GET(
     const result = await Promise.all(
       responses.map(async (r) => {
         const [respondent, answers] = await Promise.all([
-          respondentRepo.findById(r.respondentId),
+          r.respondentId ? respondentRepo.findById(r.respondentId) : Promise.resolve(null),
           responseRepo.getAnswersByResponseId(r.id),
         ]);
         return {

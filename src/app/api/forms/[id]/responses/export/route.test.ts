@@ -30,6 +30,7 @@ describe("GET /api/forms/[id]/responses/export", () => {
         { id: "r1", formId: "f1", respondentId: "resp1", submittedAt: new Date("2025-01-01") },
       ]),
       getAnswersByResponseId: vi.fn().mockResolvedValue([{ questionId: "q1", value: "Resposta" }]),
+      getAttachmentsByResponseId: vi.fn().mockResolvedValue([]),
     } as never);
     vi.mocked(getRespondentRepository).mockReturnValue({
       findById: vi.fn().mockResolvedValue({ name: "João", email: "j@x.com", department: "TI" }),
@@ -60,10 +61,29 @@ describe("GET /api/forms/[id]/responses/export", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/json");
     expect(res.headers.get("Content-Disposition")).toContain("attachment");
+    expect(res.headers.get("X-Export-Row-Count")).toBe("1");
+    expect(res.headers.get("X-Export-Truncated")).toBeNull();
     const json = await res.json();
     expect(Array.isArray(json)).toBe(true);
     expect(json[0]).toHaveProperty("respondent");
     expect(json[0]).toHaveProperty("answers");
+  });
+
+  it("aplica limite e indica truncagem no header", async () => {
+    vi.mocked(getResponseRepository).mockReturnValue({
+      findByFormId: vi.fn().mockResolvedValue([
+        { id: "r1", formId: "f1", respondentId: "resp1", submittedAt: new Date("2025-01-01") },
+        { id: "r2", formId: "f1", respondentId: "resp1", submittedAt: new Date("2025-01-02") },
+      ]),
+      getAnswersByResponseId: vi.fn().mockResolvedValue([{ questionId: "q1", value: "x" }]),
+      getAttachmentsByResponseId: vi.fn().mockResolvedValue([]),
+    } as never);
+    const req = new Request("http://localhost/api/forms/f1/responses/export?format=json&limit=1");
+    const res = await GET(req, { params: { id: "f1" } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("X-Export-Truncated")).toBe("true");
+    const json = await res.json();
+    expect(json.length).toBe(1);
   });
 
   it("retorna 200 com CSV e Content-Type text/csv", async () => {

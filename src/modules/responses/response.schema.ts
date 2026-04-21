@@ -14,6 +14,15 @@ export const answerValueSchema = z.union([
   z.array(z.string()),
 ]);
 
+export const responseAttachmentSchema = z.object({
+  questionId: z.string().uuid(),
+  storagePath: z.string().min(1).max(2048),
+  publicUrl: z.string().url().max(4096),
+  sizeBytes: z.number().int().min(0).max(524288000),
+  mimeType: z.string().min(1).max(200),
+  originalFilename: z.string().min(1).max(512),
+});
+
 export const submitResponseSchema = z.object({
   formId: z.string().uuid(),
   respondent: respondentSchema.optional(),
@@ -23,6 +32,7 @@ export const submitResponseSchema = z.object({
       value: answerValueSchema,
     })
   ).min(1),
+  attachments: z.array(responseAttachmentSchema).optional(),
 });
 
 export type SubmitResponseInput = z.infer<typeof submitResponseSchema>;

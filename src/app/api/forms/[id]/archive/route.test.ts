@@ -7,6 +7,10 @@ vi.mock("@/infrastructure/database/repositories", () => ({
   getAuditLogRepository: vi.fn(),
 }));
 
+vi.mock("@/lib/auth-session", () => ({
+  getSession: vi.fn().mockResolvedValue({ id: "admin" }),
+}));
+
 import { getFormRepository, getAuditLogRepository } from "@/infrastructure/database/repositories";
 
 describe("POST /api/forms/[id]/archive", () => {

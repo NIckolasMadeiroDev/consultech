@@ -3,6 +3,14 @@ import type { Form } from "@/core/entities";
 import type { CreateFormData, IFormRepository } from "../form.repository.interface";
 import type { UpdateFormInput } from "../form.schema";
 import { getInMemoryFolderDisplayName } from "@/modules/folders/infrastructure/in-memory-folder.repository";
+import { mergeFormTheme } from "../merge-form-theme";
+import { DEFAULT_FORM_THEME } from "@/types/form-theme-defaults";
+import {
+  defaultFormResponseSettings,
+  parseFormResponseSettings,
+  patchFormResponseSettings,
+} from "@/types/form-response-settings";
+import { parseFormSectionVisibilityRules } from "@/types/form-section-visibility";
 
 const store: Map<string, Form> = new Map();
 const slugIndex: Map<string, string> = new Map();
@@ -29,6 +37,10 @@ export class InMemoryFormRepository implements IFormRepository {
       version: 1,
       slug: data.slug,
       allowAnonymous: data.allowAnonymous ?? false,
+      responseSettings: defaultFormResponseSettings(data.allowAnonymous ?? false),
+      sectionVisibilityRules: [],
+      theme: DEFAULT_FORM_THEME,
+      submitButtonText: "Enviar",
       createdBy: data.createdBy,
       createdAt: now,
       updatedAt: now,
@@ -62,6 +74,19 @@ export class InMemoryFormRepository implements IFormRepository {
       pausedMessage,
       folderId,
       isTemplate,
+      theme: themePatch,
+      headerImage,
+      logoImage,
+      backgroundImage,
+      welcomeMessage,
+      submitButtonText,
+      successMessage,
+      successPageHtml,
+      successRedirectUrl,
+      successRedirectDelay,
+      allowAnonymous: allowAnonymousPatch,
+      responseSettings: responseSettingsPatch,
+      sectionVisibilityRules: sectionVisibilityRulesPatch,
       ...restData
     } = data;
     void _omitQuestions;
@@ -72,10 +97,56 @@ export class InMemoryFormRepository implements IFormRepository {
     } else {
       folderFields = { folderId: existing.folderId, folder: existing.folder };
     }
+    const nextTheme =
+      themePatch !== undefined ? mergeFormTheme(existing.theme, themePatch) : existing.theme;
+    let nextResponseSettings = existing.responseSettings;
+    let nextAllowAnonymous = existing.allowAnonymous;
+    if (responseSettingsPatch !== undefined) {
+      nextResponseSettings = patchFormResponseSettings(
+        parseFormResponseSettings(existing.responseSettings, existing.allowAnonymous),
+        responseSettingsPatch
+      );
+      nextAllowAnonymous = nextResponseSettings.respondentIdentificationMode === "anonymous";
+    } else if (allowAnonymousPatch !== undefined) {
+      nextResponseSettings = patchFormResponseSettings(
+        parseFormResponseSettings(existing.responseSettings, existing.allowAnonymous),
+        {
+          respondentIdentificationMode: allowAnonymousPatch ? "anonymous" : "required",
+        }
+      );
+      nextAllowAnonymous = nextResponseSettings.respondentIdentificationMode === "anonymous";
+    }
     const updated: Form = {
       ...existing,
       ...restData,
       ...folderFields,
+      allowAnonymous: nextAllowAnonymous,
+      responseSettings: nextResponseSettings,
+      sectionVisibilityRules:
+        sectionVisibilityRulesPatch !== undefined
+          ? parseFormSectionVisibilityRules(sectionVisibilityRulesPatch)
+          : existing.sectionVisibilityRules,
+      theme: nextTheme,
+      headerImage: headerImage === undefined ? existing.headerImage : (headerImage ?? undefined),
+      logoImage: logoImage === undefined ? existing.logoImage : (logoImage ?? undefined),
+      backgroundImage:
+        backgroundImage === undefined ? existing.backgroundImage : (backgroundImage ?? undefined),
+      welcomeMessage:
+        welcomeMessage === undefined ? existing.welcomeMessage : (welcomeMessage ?? undefined),
+      submitButtonText:
+        submitButtonText === undefined ? existing.submitButtonText : submitButtonText,
+      successMessage:
+        successMessage === undefined ? existing.successMessage : (successMessage ?? undefined),
+      successPageHtml:
+        successPageHtml === undefined ? existing.successPageHtml : (successPageHtml ?? undefined),
+      successRedirectUrl:
+        successRedirectUrl === undefined
+          ? existing.successRedirectUrl
+          : (successRedirectUrl ?? undefined),
+      successRedirectDelay:
+        successRedirectDelay === undefined
+          ? existing.successRedirectDelay
+          : (successRedirectDelay ?? undefined),
       closingMessage:
         closingMessage === undefined ? existing.closingMessage : (closingMessage ?? undefined),
       pausedMessage:
@@ -120,6 +191,18 @@ export class InMemoryFormRepository implements IFormRepository {
       version: 1,
       slug: undefined,
       allowAnonymous: existing.allowAnonymous,
+      responseSettings: existing.responseSettings,
+      sectionVisibilityRules: parseFormSectionVisibilityRules(existing.sectionVisibilityRules),
+      theme: existing.theme,
+      headerImage: existing.headerImage,
+      logoImage: existing.logoImage,
+      backgroundImage: existing.backgroundImage,
+      welcomeMessage: existing.welcomeMessage,
+      submitButtonText: existing.submitButtonText,
+      successMessage: existing.successMessage,
+      successPageHtml: existing.successPageHtml,
+      successRedirectUrl: existing.successRedirectUrl,
+      successRedirectDelay: existing.successRedirectDelay,
       createdBy,
       createdAt: now,
       updatedAt: now,

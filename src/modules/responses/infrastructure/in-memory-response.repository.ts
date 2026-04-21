@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { Response, Answer } from "@/core/entities";
 import type { ResponseFilters } from "@/types";
-import type { SubmitResponseInput, IResponseRepository } from "../response.repository.interface";
+import type {
+  SubmitResponseInput,
+  IResponseRepository,
+  ResponseAttachmentRecord,
+} from "../response.repository.interface";
 
 const responseStore: Map<string, Response> = new Map();
 const answerStore: Map<string, Answer> = new Map();
+const attachmentStore: Map<string, ResponseAttachmentRecord[]> = new Map();
 
 export class InMemoryResponseRepository implements IResponseRepository {
   async create(data: SubmitResponseInput): Promise<Response> {
@@ -23,6 +28,19 @@ export class InMemoryResponseRepository implements IResponseRepository {
         value: a.value,
       };
       answerStore.set(answer.id, answer);
+    }
+    if (data.attachments?.length) {
+      attachmentStore.set(
+        response.id,
+        data.attachments.map((a) => ({
+          questionId: a.questionId,
+          storagePath: a.storagePath,
+          publicUrl: a.publicUrl,
+          mimeType: a.mimeType,
+          sizeBytes: a.sizeBytes,
+          originalFilename: a.originalFilename,
+        }))
+      );
     }
     return response;
   }
@@ -70,6 +88,10 @@ export class InMemoryResponseRepository implements IResponseRepository {
     return Array.from(answerStore.values()).filter(
       (a) => a.responseId === responseId
     );
+  }
+
+  async getAttachmentsByResponseId(responseId: string): Promise<ResponseAttachmentRecord[]> {
+    return attachmentStore.get(responseId) ?? [];
   }
 
   async findRecentByFormIdWithAnswers(
@@ -122,6 +144,7 @@ export class InMemoryResponseRepository implements IResponseRepository {
     for (const [aid, a] of answerStore.entries()) {
       if (a.responseId === id) answerStore.delete(aid);
     }
+    attachmentStore.delete(id);
     return responseStore.delete(id);
   }
 }
@@ -129,4 +152,5 @@ export class InMemoryResponseRepository implements IResponseRepository {
 export function clearResponseStore(): void {
   responseStore.clear();
   answerStore.clear();
+  attachmentStore.clear();
 }
