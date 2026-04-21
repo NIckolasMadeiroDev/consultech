@@ -196,7 +196,7 @@ export default function FinanceContratosPage() {
                           <MoneyValue
                             value={contract.totalValue}
                             variant="neutral"
-                            size="small"
+                            size="aux"
                           />
                         </div>
                         <div className="flex items-center justify-between text-small">
@@ -206,7 +206,7 @@ export default function FinanceContratosPage() {
                           <MoneyValue
                             value={contract.receivedAmount}
                             variant="entry"
-                            size="small"
+                            size="aux"
                           />
                         </div>
                         <div className="flex items-center justify-between text-small">
@@ -216,7 +216,7 @@ export default function FinanceContratosPage() {
                           <MoneyValue
                             value={contract.pendingAmount}
                             variant="exit"
-                            size="small"
+                            size="aux"
                           />
                         </div>
                       </div>

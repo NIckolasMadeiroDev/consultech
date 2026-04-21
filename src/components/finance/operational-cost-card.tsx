@@ -69,15 +69,15 @@ export function OperationalCostCard({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-small text-[var(--text-secondary)]">Previsto</span>
-          <MoneyValue value={predicted} variant="neutral" size="medium" />
+          <MoneyValue value={predicted} variant="neutral" size="table" />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-[var(--text-secondary)]">Realizado</span>
-          <MoneyValue value={realized} variant="exit" size="medium" />
+          <MoneyValue value={realized} variant="exit" size="table" />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-[var(--text-secondary)]">Pendente</span>
-          <MoneyValue value={pending} variant="exit" size="medium" />
+          <MoneyValue value={pending} variant="exit" size="table" />
         </div>
 
         <div className="border-t border-neutral-200 pt-3 dark:border-neutral-700">
@@ -88,7 +88,7 @@ export function OperationalCostCard({
             <MoneyValue
               value={remainingBudget}
               variant={remainingBudget >= 0 ? "entry" : "balance-negative"}
-              size="medium"
+              size="table"
             />
           </div>
           {remainingBudget < 0 && (

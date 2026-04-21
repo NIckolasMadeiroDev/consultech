@@ -161,7 +161,7 @@ export function CustomChartRenderer({
               cx="50%"
               cy="50%"
               outerRadius={100}
-              label={(entry) => `${entry.label}: ${entry.value}`}
+              label={(entry: { label?: string; value?: number }) => `${entry.label || ''}: ${entry.value || 0}`}
             >
               {data.map((entry, index) => (
                 <Cell

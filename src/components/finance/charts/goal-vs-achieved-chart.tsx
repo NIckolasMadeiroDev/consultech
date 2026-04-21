@@ -63,8 +63,8 @@ export function GoalVsAchievedChart({ months = 6 }: { months?: number }) {
           tickFormatter={(value) => `R$ ${value.toLocaleString("pt-BR")}`}
         />
         <Tooltip
-          formatter={(value: number) => [
-            `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          formatter={(value) => [
+            `R$ ${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             "",
           ]}
           contentStyle={{

@@ -64,8 +64,8 @@ export function ExpensesByCategoryChart({ months = 6 }: { months?: number }) {
           style={{ fontSize: "12px" }}
         />
         <Tooltip
-          formatter={(value: number) => [
-            `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          formatter={(value) => [
+            `R$ ${Number(value || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
             "Total",
           ]}
           contentStyle={{

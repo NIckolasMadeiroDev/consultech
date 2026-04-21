@@ -199,21 +199,21 @@ export default function ReportsPage() {
               <Button
                 onClick={() => handleExportTransactions("xlsx")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 Excel (.xlsx)
               </Button>
               <Button
                 onClick={() => handleExportTransactions("csv")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 CSV (.csv)
               </Button>
               <Button
                 onClick={() => handleExportTransactions("json")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 JSON (.json)
               </Button>
@@ -230,21 +230,21 @@ export default function ReportsPage() {
               <Button
                 onClick={() => handleExportReceivables("xlsx")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 Excel (.xlsx)
               </Button>
               <Button
                 onClick={() => handleExportReceivables("csv")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 CSV (.csv)
               </Button>
               <Button
                 onClick={() => handleExportReceivables("json")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 JSON (.json)
               </Button>
@@ -261,21 +261,21 @@ export default function ReportsPage() {
               <Button
                 onClick={() => handleExportPayables("xlsx")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 Excel (.xlsx)
               </Button>
               <Button
                 onClick={() => handleExportPayables("csv")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 CSV (.csv)
               </Button>
               <Button
                 onClick={() => handleExportPayables("json")}
                 disabled={exporting}
-                variant="outline"
+                variant="secondary"
               >
                 JSON (.json)
               </Button>

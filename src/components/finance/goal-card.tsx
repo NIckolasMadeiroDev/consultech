@@ -62,11 +62,11 @@ export function GoalCard({ goal, achieved, percentage, status, monthLabel }: Goa
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-small text-[var(--text-secondary)]">Meta</span>
-          <MoneyValue value={goal} variant="neutral" size="medium" />
+          <MoneyValue value={goal} variant="neutral" size="table" />
         </div>
         <div className="flex items-center justify-between">
           <span className="text-small text-[var(--text-secondary)]">Realizado</span>
-          <MoneyValue value={achieved} variant="entry" size="medium" />
+          <MoneyValue value={achieved} variant="entry" size="table" />
         </div>
 
         {percentage !== null && (
