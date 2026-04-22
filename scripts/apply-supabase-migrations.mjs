@@ -57,6 +57,34 @@ function toDirectUrl(raw) {
   return direct;
 }
 
+function errorText(e) {
+  const parts = [String(e?.message ?? e)];
+  let c = e?.cause;
+  let depth = 0;
+  while (c && depth < 5) {
+    parts.push(String(c?.message ?? c));
+    c = c.cause;
+    depth += 1;
+  }
+  if (e?.stderr) {
+    parts.push(Buffer.isBuffer(e.stderr) ? e.stderr.toString() : String(e.stderr));
+  }
+  if (e?.stdout) {
+    parts.push(Buffer.isBuffer(e.stdout) ? e.stdout.toString() : String(e.stdout));
+  }
+  return parts.join("\n");
+}
+
+function isDbUnreachableError(e) {
+  const blob = errorText(e);
+  if (e?.code === "P1001") return true;
+  if (/P1001/i.test(blob)) return true;
+  if (/Can't reach database server/i.test(blob)) return true;
+  if (/ECONNREFUSED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|EHOSTUNREACH/i.test(blob)) return true;
+  if (/getaddrinfo|socket hang up|Connection refused/i.test(blob)) return true;
+  return false;
+}
+
 const files = [
   "000_vector_extension.sql",
   "001_initial_schema.sql",
@@ -96,39 +124,57 @@ async function main() {
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
   try {
-    await prisma.$executeRawUnsafe(`
+    try {
+      await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS _app_sql_migrations (
         filename TEXT PRIMARY KEY,
         applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
     `);
-    const rows = await prisma.$queryRaw`
+      const rows = await prisma.$queryRaw`
       SELECT filename FROM _app_sql_migrations
     `;
-    const applied = new Set(rows.map((r) => r.filename));
-    const env = { ...process.env, DATABASE_URL: direct };
-    for (const f of files) {
-      if (applied.has(f)) {
-        process.stdout.write(`Pulando ${f} (ja aplicada)\n`);
-        continue;
-      }
-      const filePath = join("supabase", "migrations", f);
-      process.stdout.write(`Aplicando ${f}\n`);
-      execSync(
-        `npx prisma db execute --file "${filePath}" --schema prisma/schema.prisma`,
-        { env, stdio: "inherit", cwd: process.cwd(), shell: true }
-      );
-      await prisma.$executeRaw`
+      const applied = new Set(rows.map((r) => r.filename));
+      const env = { ...process.env, DATABASE_URL: direct };
+      for (const f of files) {
+        if (applied.has(f)) {
+          process.stdout.write(`Pulando ${f} (ja aplicada)\n`);
+          continue;
+        }
+        const filePath = join("supabase", "migrations", f);
+        process.stdout.write(`Aplicando ${f}\n`);
+        execSync(
+          `npx prisma db execute --file "${filePath}" --schema prisma/schema.prisma`,
+          { env, stdio: "inherit", cwd: process.cwd(), shell: true }
+        );
+        await prisma.$executeRaw`
         INSERT INTO _app_sql_migrations (filename) VALUES (${f})
       `;
+      }
+      process.stdout.write("Migracoes verificadas/aplicadas.\n");
+    } catch (inner) {
+      if (isDbUnreachableError(inner)) {
+        process.stderr.write(
+          `${errorText(inner)}\nMigracoes omitidas: banco inacessivel neste momento (o build continua). ` +
+            `Com o Postgres online, rode: npm run db:apply-supabase-migrations\n`
+        );
+        return;
+      }
+      throw inner;
     }
-    process.stdout.write("Migracoes verificadas/aplicadas.\n");
   } finally {
     await prisma.$disconnect();
   }
 }
 
 main().catch((e) => {
+  if (isDbUnreachableError(e)) {
+    process.stderr.write(
+      `${errorText(e)}\nMigracoes omitidas: banco inacessivel (o build continua). ` +
+        `Com o Postgres online, rode: npm run db:apply-supabase-migrations\n`
+    );
+    process.exit(0);
+  }
   process.stderr.write(`${e.message}\n`);
   process.exit(1);
 });
