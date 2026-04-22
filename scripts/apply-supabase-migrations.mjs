@@ -84,13 +84,14 @@ async function main() {
     process.stdout.write("SKIP_DB_MIGRATIONS=1, migracoes ignoradas.\n");
     return;
   }
-  if (process.env.VERCEL === "1" && process.env.RUN_DB_MIGRATIONS_ON_BUILD !== "1") {
-    process.stdout.write(
-      "Build na Vercel: migracoes SQL omitidas. Aplique em Supabase (SQL Editor) ou rode npm run db:apply-supabase-migrations na sua maquina. Para forcar no build: RUN_DB_MIGRATIONS_ON_BUILD=1 e DATABASE_URL com conexao direta (db.PROJETO.supabase.co:5432, usuario postgres).\n"
-    );
+  let direct;
+  try {
+    direct = toDirectUrl(loadRawDatabaseUrl());
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    process.stdout.write(`Migracoes omitidas (sem DATABASE_URL): ${msg}\n`);
     return;
   }
-  const direct = toDirectUrl(loadRawDatabaseUrl());
   process.env.DATABASE_URL = direct;
   const { PrismaClient } = await import("@prisma/client");
   const prisma = new PrismaClient();
