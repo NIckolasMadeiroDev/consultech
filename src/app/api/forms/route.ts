@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
-import { createForm } from "@/modules/forms";
 import { createFormSchema } from "@/modules/forms/form.schema";
 import { formListDTO } from "@/modules/forms/form.dto";
 import {
@@ -16,9 +15,11 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   return apiHandler(async () => {
     const url = new URL(req.url);
-    const createdBy =
-      url.searchParams.get("createdBy") ??
-      (await getCreatedBy(req));
+    const fromQuery = url.searchParams.get("createdBy");
+    const createdBy = fromQuery ?? (await getCreatedBy(req));
+    if (!fromQuery && createdBy === "anonymous") {
+      throw new Error("Unauthorized");
+    }
     const formRepo = getFormRepository();
     const forms = await formRepo.findByCreatedBy(createdBy);
     return forms.map(formListDTO);
@@ -27,6 +28,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   return apiHandler(async () => {
+    const { createForm } = await import("@/modules/forms/create-form");
     const body = await req.json();
     const data = createFormSchema.parse(body);
     const createdBy = await getCreatedBy(req);

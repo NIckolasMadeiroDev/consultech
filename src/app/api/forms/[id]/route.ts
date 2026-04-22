@@ -11,7 +11,6 @@ import {
 } from "@/infrastructure/database/repositories";
 import { getSession } from "@/lib/auth-session";
 import type { Question } from "@/core/entities";
-import { diffFormSnapshots, snapshotFormState } from "@/modules/forms/build-form-revision";
 import { normalizeQuestionForPersistence } from "@/modules/forms/normalize-question-payload";
 
 type PatchQuestionRow = NonNullable<UpdateFormInput["questions"]>[number];
@@ -38,6 +37,9 @@ export async function PATCH(
   context: { params: { id: string } }
 ) {
   return apiHandler(async () => {
+    const { diffFormSnapshots, snapshotFormState } = await import(
+      "@/modules/forms/build-form-revision"
+    );
     const { id } = context.params;
     const body = await req.json();
     const parsed = updateFormSchema.parse(body);
